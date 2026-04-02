@@ -100,6 +100,13 @@ export function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // Mark any existing active challenge as abandoned before starting a new one
+      await supabase
+        .from('challenges')
+        .update({ status: 'abandoned' })
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+
       const startDate = new Date().toISOString().split('T')[0]
       const endDate = new Date(Date.now() + 89 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 

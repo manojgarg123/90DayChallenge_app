@@ -36,7 +36,12 @@ export function AppShell() {
     }
 
     if (user && location.pathname === ONBOARDING_ROUTE && challenge) {
-      navigate('/dashboard', { replace: true })
+      // Only redirect away from onboarding if the user arrived here accidentally
+      // (e.g. direct URL) — not when navigated intentionally from History page.
+      // We use location.state to signal intentional navigation.
+      if (!location.state?.newChallenge) {
+        navigate('/dashboard', { replace: true })
+      }
     }
   }, [user, challenge, authLoading, challengeLoading, location.pathname])
 

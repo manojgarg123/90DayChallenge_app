@@ -76,7 +76,7 @@ export function DashboardPage() {
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
           Start your 90-day journey today!
         </p>
-        <Button onClick={() => navigate('/onboarding')} size="lg">
+        <Button onClick={() => navigate('/onboarding', { state: { newChallenge: true } })} size="lg">
           <Plus size={18} />
           Start a New Challenge
         </Button>

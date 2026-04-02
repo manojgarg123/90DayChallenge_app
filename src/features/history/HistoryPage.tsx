@@ -89,7 +89,7 @@ export function HistoryPage() {
             <Trophy size={48} className="mx-auto mb-4 text-gray-200 dark:text-dark-100" />
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No challenges yet</h3>
             <p className="text-sm text-gray-400 mb-6">Start your first 90-day challenge!</p>
-            <Button onClick={() => navigate('/onboarding')}>
+            <Button onClick={() => navigate('/onboarding', { state: { newChallenge: true } })}>
               <Plus size={16} />
               New Challenge
             </Button>
@@ -150,7 +150,7 @@ export function HistoryPage() {
               variant="secondary"
               size="lg"
               className="w-full gap-2"
-              onClick={() => navigate('/onboarding')}
+              onClick={() => navigate('/onboarding', { state: { newChallenge: true } })}
             >
               <Plus size={18} />
               Start New Challenge
