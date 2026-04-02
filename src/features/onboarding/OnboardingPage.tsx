@@ -27,25 +27,34 @@ export function OnboardingPage() {
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [saving, setSaving] = useState(false)
 
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+
   async function analyzeGoal(goal: string) {
     setGoalText(goal)
+    setAnalyzeError(null)
     setStep('analyzing')
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Not authenticated')
 
+      console.log('[analyze-goal] Invoking edge function...')
+
       const { data, error } = await supabase.functions.invoke('analyze-goal', {
         body: { goal },
-        headers: { Authorization: `Bearer ${session.access_token}` },
       })
 
-      if (error) throw error
+      console.log('[analyze-goal] Response:', { data, error })
+
+      if (error) throw new Error(`Edge function error: ${error.message}`)
+      if (!data?.plan) throw new Error('No plan returned from edge function')
+
       setPlan(data.plan)
       setStep('preview')
     } catch (err) {
-      console.error('Goal analysis failed:', err)
-      // Fallback to a default plan structure
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[analyze-goal] Failed:', msg)
+      setAnalyzeError(msg)
       setPlan(generateFallbackPlan(goal))
       setStep('preview')
     }
@@ -202,6 +211,12 @@ export function OnboardingPage() {
           )}
           {step === 'preview' && plan && (
             <motion.div key="preview" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              {analyzeError && (
+                <div className="mb-4 p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">⚠️ AI plan failed — using fallback plan</p>
+                  <p className="text-xs text-red-500 dark:text-red-500 font-mono break-all">{analyzeError}</p>
+                </div>
+              )}
               <PlanPreviewStep plan={plan} onStart={startChallenge} saving={saving} />
             </motion.div>
           )}
