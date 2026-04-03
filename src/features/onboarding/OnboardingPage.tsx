@@ -40,13 +40,12 @@ export function OnboardingPage() {
 
       console.log('[analyze-goal] Calling edge function via fetch...')
 
-      // Use the anon key as the Bearer token — it is a valid Supabase JWT and
-      // never expires, so gateway JWT verification always passes.
+      // Send only apikey header — no Authorization/JWT needed when function
+      // is deployed with --no-verify-jwt flag (which disables gateway JWT check)
       const res = await fetch(`${supabaseUrl}/functions/v1/analyze-goal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
           'apikey': supabaseAnonKey,
         },
         body: JSON.stringify({ goal }),
