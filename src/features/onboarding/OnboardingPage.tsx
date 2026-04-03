@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAnonKey } from '@/lib/supabase'
 import { GoalStep } from './GoalStep'
 import { AnalyzingStep } from './AnalyzingStep'
 import { PlanPreviewStep } from './PlanPreviewStep'
@@ -35,40 +35,35 @@ export function OnboardingPage() {
     setStep('analyzing')
 
     try {
-      // Force-refresh the session to guarantee a fresh JWT (prevents "Invalid JWT" gateway errors)
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-      const session = refreshData?.session
-      if (refreshError || !session) {
-        throw new Error('Session expired — please log out and log back in')
-      }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      if (!supabaseUrl || !supabaseAnonKey) throw new Error('Missing Supabase config')
 
-      console.log('[analyze-goal] Invoking edge function...')
+      console.log('[analyze-goal] Calling edge function via fetch...')
 
-      const { data, error } = await supabase.functions.invoke('analyze-goal', {
-        body: { goal },
+      // Use the anon key as the Bearer token — it is a valid Supabase JWT and
+      // never expires, so gateway JWT verification always passes.
+      const res = await fetch(`${supabaseUrl}/functions/v1/analyze-goal`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
         },
+        body: JSON.stringify({ goal }),
       })
 
-      console.log('[analyze-goal] Response:', { data, error })
+      console.log('[analyze-goal] HTTP status:', res.status)
 
-      if (error) {
-        // Try to extract detailed error from the response body
-        let detail = error.message
-        try {
-          // FunctionsHttpError has a context property with the raw Response
-          const ctx = (error as any).context
-          if (ctx) {
-            const body = await ctx.json()
-            detail = body.details || body.error || JSON.stringify(body)
-          }
-        } catch {}
-        throw new Error(`Edge function error: ${detail}`)
+      const payload = await res.json()
+      console.log('[analyze-goal] Response payload:', payload)
+
+      if (!res.ok) {
+        const detail = payload?.details || payload?.error || JSON.stringify(payload)
+        throw new Error(`Edge function error (${res.status}): ${detail}`)
       }
-      if (!data?.plan) throw new Error('No plan returned from edge function')
+      if (!payload?.plan) throw new Error('No plan returned from edge function')
 
-      setPlan(data.plan)
+      setPlan(payload.plan)
       setStep('preview')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

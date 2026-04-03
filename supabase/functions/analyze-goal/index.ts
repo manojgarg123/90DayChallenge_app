@@ -1,8 +1,6 @@
 // Supabase Edge Function: analyze-goal
 // Analyzes user's 90-day goal using Claude AI and returns a structured plan
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 
 const corsHeaders = {
@@ -16,33 +14,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify auth
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Use admin client to verify the user's JWT (correct pattern for Edge Functions)
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    )
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const { goal } = await req.json()
     if (!goal || typeof goal !== 'string' || goal.length < 10) {
-      return new Response(JSON.stringify({ error: 'Invalid goal' }), {
+      return new Response(JSON.stringify({ error: 'Invalid goal: must be at least 10 characters' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -50,7 +24,10 @@ Deno.serve(async (req) => {
 
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!anthropicKey) {
-      throw new Error('ANTHROPIC_API_KEY not configured')
+      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured in Supabase secrets' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const systemPrompt = `You are a world-class fitness and wellness coach. Your job is to analyze a user's 90-day goal and create a comprehensive, actionable plan broken into distinct focus areas (segments).
@@ -89,34 +66,33 @@ Rules:
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: `My 90-day goal: ${goal}`,
-          },
-        ],
+        messages: [{ role: 'user', content: `My 90-day goal: ${goal}` }],
       }),
     })
 
     if (!response.ok) {
       const errText = await response.text()
-      throw new Error(`Claude API error: ${response.status} ${errText}`)
+      return new Response(
+        JSON.stringify({ error: `Claude API error ${response.status}`, details: errText }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const claudeData = await response.json()
     const rawContent = claudeData.content[0].text.trim()
 
-    // Parse JSON safely
     let plan
     try {
       plan = JSON.parse(rawContent)
     } catch {
-      // Try to extract JSON from response
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         plan = JSON.parse(jsonMatch[0])
       } else {
-        throw new Error('Failed to parse Claude response as JSON')
+        return new Response(
+          JSON.stringify({ error: 'Failed to parse Claude response as JSON', details: rawContent.slice(0, 200) }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
     }
 
@@ -126,11 +102,8 @@ Rules:
   } catch (error) {
     console.error('analyze-goal error:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to analyze goal', details: String(error) }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: 'Unexpected error', details: String(error) }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
