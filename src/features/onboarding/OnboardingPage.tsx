@@ -35,13 +35,20 @@ export function OnboardingPage() {
     setStep('analyzing')
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Not authenticated')
+      // Force-refresh the session to guarantee a fresh JWT (prevents "Invalid JWT" gateway errors)
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+      const session = refreshData?.session
+      if (refreshError || !session) {
+        throw new Error('Session expired — please log out and log back in')
+      }
 
       console.log('[analyze-goal] Invoking edge function...')
 
       const { data, error } = await supabase.functions.invoke('analyze-goal', {
         body: { goal },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       })
 
       console.log('[analyze-goal] Response:', { data, error })
