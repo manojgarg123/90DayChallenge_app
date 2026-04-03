@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Plus, CheckCircle, XCircle, Clock, Trophy } from 'lucide-react'
+import { ProfileAvatar } from '@/components/ProfileAvatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDate, getDaysRemaining } from '@/lib/utils'
@@ -76,8 +77,13 @@ export function HistoryPage() {
     <div className="min-h-screen bg-gradient-to-b from-mint-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
       <div className="max-w-lg mx-auto">
       <div className="px-4 pt-8 sm:pt-12 pb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Challenge History</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">All your 90-day journeys</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Challenge History</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">All your 90-day journeys</p>
+          </div>
+          <ProfileAvatar />
+        </div>
       </div>
 
       <div className="px-4 flex flex-col gap-3">

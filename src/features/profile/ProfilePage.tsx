@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { User, Edit3, LogOut, Bell, Moon, Sun, ChevronRight, Award, Flame, Target } from 'lucide-react'
+import { User, Edit3, LogOut, Bell, Moon, Sun, ChevronRight, Flame, Target } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
@@ -188,12 +188,6 @@ export function ProfilePage() {
             icon={<Bell size={18} />}
             label="Notifications"
             onClick={() => navigate('/notifications')}
-          />
-          <div className="h-px bg-gray-100 dark:bg-dark-100 mx-4" />
-          <SettingRow
-            icon={<Award size={18} />}
-            label="Challenge History"
-            onClick={() => navigate('/history')}
           />
         </Card>
 

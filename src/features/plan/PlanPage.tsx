@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ProfileAvatar } from '@/components/ProfileAvatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
@@ -98,8 +99,13 @@ export function PlanPage() {
       <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="px-4 pt-8 sm:pt-12 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">90-Day Plan</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{challenge.title}</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">90-Day Plan</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{challenge.title}</p>
+          </div>
+          <ProfileAvatar />
+        </div>
       </div>
 
       {/* Segment legend */}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, TrendingUp, Target, Zap } from 'lucide-react'
+import { ProfileAvatar } from '@/components/ProfileAvatar'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
@@ -116,8 +117,13 @@ export function WeeklySummaryPage() {
     <div className="min-h-screen bg-gradient-to-b from-sky-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
       <div className="max-w-lg mx-auto">
       <div className="px-4 pt-8 sm:pt-12 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Weekly Report</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Track your progress week by week</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Weekly Report</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Track your progress week by week</p>
+          </div>
+          <ProfileAvatar />
+        </div>
       </div>
 
       {/* Week selector */}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Bell, Plus, Sun, Moon } from 'lucide-react'
+import { ProfileAvatar } from '@/components/ProfileAvatar'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -118,6 +119,7 @@ export function DashboardPage() {
                 </span>
               )}
             </button>
+            <ProfileAvatar />
           </div>
         </div>
       </div>

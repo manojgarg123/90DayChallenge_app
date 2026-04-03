@@ -1,13 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Home, ListChecks, BarChart3, Calendar, User } from 'lucide-react'
+import { Home, ListChecks, BarChart3, Calendar, Trophy } from 'lucide-react'
 
 const NAV_ITEMS = [
   { path: '/dashboard', icon: Home, label: 'Home' },
   { path: '/log', icon: ListChecks, label: 'Log' },
   { path: '/plan', icon: Calendar, label: 'Plan' },
   { path: '/weekly', icon: BarChart3, label: 'Weekly' },
-  { path: '/profile', icon: User, label: 'Profile' },
+  { path: '/history', icon: Trophy, label: 'History' },
 ]
 
 export function BottomNav() {

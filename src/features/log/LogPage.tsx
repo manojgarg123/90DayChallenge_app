@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Circle, SkipForward, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react'
+import { ProfileAvatar } from '@/components/ProfileAvatar'
 import { format } from 'date-fns'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
@@ -59,10 +60,15 @@ export function LogPage() {
       <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="px-4 pt-8 sm:pt-12 pb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Log</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {format(new Date(), 'EEEE, MMMM d')} · Day {dayNumber}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Log</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {format(new Date(), 'EEEE, MMMM d')} · Day {dayNumber}
+            </p>
+          </div>
+          <ProfileAvatar />
+        </div>
       </div>
 
       <div className="px-4 pb-2 flex flex-col gap-4">
