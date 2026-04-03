@@ -56,15 +56,16 @@ export function LogPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-peach-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
+      <div className="max-w-lg mx-auto">
       {/* Header */}
-      <div className="px-4 pt-12 pb-6">
+      <div className="px-4 pt-8 sm:pt-12 pb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Log</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {format(new Date(), 'EEEE, MMMM d')} · Day {dayNumber}
         </p>
       </div>
 
-      <div className="px-4 flex flex-col gap-4">
+      <div className="px-4 pb-2 flex flex-col gap-4">
         {/* Progress header */}
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
@@ -205,7 +206,7 @@ export function LogPage() {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden pl-10 pr-2 pt-2"
+                            className="overflow-hidden pl-8 sm:pl-10 pr-2 pt-2"
                           >
                             <Textarea
                               placeholder="Add a note about this task..."
@@ -236,6 +237,7 @@ export function LogPage() {
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">You crushed it today. Keep going!</p>
           </motion.div>
         )}
+      </div>
       </div>
     </div>
   )

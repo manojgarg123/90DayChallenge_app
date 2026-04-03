@@ -74,7 +74,8 @@ export function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-mint-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
-      <div className="px-4 pt-12 pb-6">
+      <div className="max-w-lg mx-auto">
+      <div className="px-4 pt-8 sm:pt-12 pb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Challenge History</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">All your 90-day journeys</p>
       </div>
@@ -157,6 +158,7 @@ export function HistoryPage() {
             </Button>
           </>
         )}
+      </div>
       </div>
     </div>
   )

@@ -98,7 +98,8 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blush-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
-      <div className="px-4 pt-12 pb-6">
+      <div className="max-w-lg mx-auto">
+      <div className="px-4 pt-8 sm:pt-12 pb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Profile</h1>
       </div>
 
@@ -205,6 +206,7 @@ export function ProfilePage() {
           <LogOut size={18} />
           Sign Out
         </Button>
+      </div>
       </div>
     </div>
   )

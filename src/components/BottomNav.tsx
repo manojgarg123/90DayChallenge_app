@@ -18,7 +18,7 @@ export function BottomNav() {
     <div className="fixed bottom-0 left-0 right-0 z-50">
       {/* Blur backdrop */}
       <div className="bg-white/80 dark:bg-dark-100/80 backdrop-blur-xl border-t border-gray-100 dark:border-dark-50 px-2 pb-safe">
-        <div className="flex items-center justify-around max-w-lg mx-auto">
+        <div className="flex items-center justify-around max-w-lg mx-auto sm:max-w-xl">
           {NAV_ITEMS.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path
             return (

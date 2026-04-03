@@ -114,7 +114,8 @@ export function WeeklySummaryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
-      <div className="px-4 pt-12 pb-4">
+      <div className="max-w-lg mx-auto">
+      <div className="px-4 pt-8 sm:pt-12 pb-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Weekly Report</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">Track your progress week by week</p>
       </div>
@@ -149,13 +150,13 @@ export function WeeklySummaryPage() {
       </div>
 
       {loading ? (
-        <div className="px-4 flex flex-col gap-4">
+        <div className="px-4 pb-2 flex flex-col gap-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-32 bg-white/60 dark:bg-dark-50/60 rounded-3xl animate-pulse" />
           ))}
         </div>
       ) : summaryData ? (
-        <div className="px-4 flex flex-col gap-4">
+        <div className="px-4 pb-2 flex flex-col gap-4">
           {/* Summary header */}
           {(() => {
             const rating = getRatingEmoji(summaryData.completionRate)
@@ -187,7 +188,7 @@ export function WeeklySummaryPage() {
           {/* Daily bar chart */}
           <Card className="p-5">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Daily Breakdown</h3>
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer width="100%" height={180}>
               <BarChart data={summaryData.dailyData} barSize={20} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(150,150,150,0.1)" />
                 <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'currentColor' }} className="text-gray-400" />
@@ -247,6 +248,7 @@ export function WeeklySummaryPage() {
           </Card>
         </div>
       ) : null}
+      </div>
     </div>
   )
 }

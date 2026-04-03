@@ -88,8 +88,9 @@ export function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-lavender-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
+      <div className="max-w-lg mx-auto">
       {/* Header */}
-      <div className="px-4 pt-12 pb-6">
+      <div className="px-4 pt-8 sm:pt-12 pb-6">
         <div className="flex items-center justify-between mb-1">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -121,7 +122,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="px-4 flex flex-col gap-4">
+      <div className="px-4 pb-2 flex flex-col gap-4">
         {/* Nudges Banner */}
         {nudges.length > 0 && (
           <NudgesBanner nudge={nudges[0]} onDismiss={() => {
@@ -202,6 +203,7 @@ export function DashboardPage() {
           dayNumber={dayNumber}
           onLogComplete={fetchLogs}
         />
+      </div>
       </div>
     </div>
   )

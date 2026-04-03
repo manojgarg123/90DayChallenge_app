@@ -95,8 +95,9 @@ export function PlanPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-lavender-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
+      <div className="max-w-lg mx-auto">
       {/* Header */}
-      <div className="px-4 pt-12 pb-4">
+      <div className="px-4 pt-8 sm:pt-12 pb-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">90-Day Plan</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{challenge.title}</p>
       </div>
@@ -173,7 +174,7 @@ export function PlanPage() {
       </div>
 
       {/* Days */}
-      <div className="px-4 flex flex-col gap-3">
+      <div className="px-4 pb-2 flex flex-col gap-3">
         {loadingTasks ? (
           [...Array(7)].map((_, i) => (
             <div key={i} className="h-20 bg-white/60 dark:bg-dark-50/60 rounded-3xl animate-pulse" />
@@ -231,7 +232,7 @@ export function PlanPage() {
                   </div>
 
                   {dayTasks.length > 0 && (
-                    <div className="flex flex-col gap-1.5 pl-12">
+                    <div className="flex flex-col gap-1.5 pl-8 sm:pl-12">
                       {dayTasks.map(task => {
                         const taskLog = dayLogs.find(l => l.task_id === task.id)
                         const done = taskLog?.status === 'completed'
@@ -254,6 +255,7 @@ export function PlanPage() {
             )
           })
         )}
+      </div>
       </div>
     </div>
   )
