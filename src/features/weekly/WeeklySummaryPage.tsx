@@ -3,21 +3,28 @@ import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, TrendingUp, Target, Zap } from 'lucide-react'
 import { ProfileAvatar } from '@/components/ProfileAvatar'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  LineChart, Line,
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
+import { useOutcomes } from '@/hooks/useOutcomes'
 import { getDayNumber } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 export function WeeklySummaryPage() {
   const { user } = useAuth()
   const { challenge, segments } = useActiveChallenge(user?.id)
+  const { metrics, logs: outcomeLogs, saveLog } = useOutcomes(challenge?.id)
   const currentDay = challenge ? getDayNumber(challenge.start_date) : 1
   const currentWeek = Math.ceil(currentDay / 7)
   const [selectedWeek, setSelectedWeek] = useState(currentWeek)
+  const [metricInputs, setMetricInputs] = useState<Record<string, string>>({})
+  const [savingMetric, setSavingMetric] = useState<string | null>(null)
   const [summaryData, setSummaryData] = useState<{
     totalTasks: number
     completedTasks: number
@@ -37,6 +44,16 @@ export function WeeklySummaryPage() {
   useEffect(() => {
     if (challenge) fetchWeeklySummary()
   }, [challenge, selectedWeek])
+
+  // Pre-fill metric inputs from existing logs for the selected week
+  useEffect(() => {
+    const inputs: Record<string, string> = {}
+    for (const metric of metrics) {
+      const existing = outcomeLogs.find(l => l.metric_id === metric.id && l.week_number === selectedWeek)
+      inputs[metric.id] = existing ? String(existing.value) : ''
+    }
+    setMetricInputs(inputs)
+  }, [metrics, outcomeLogs, selectedWeek])
 
   async function fetchWeeklySummary() {
     if (!challenge) return
@@ -103,6 +120,14 @@ export function WeeklySummaryPage() {
       dailyData,
     })
     setLoading(false)
+  }
+
+  async function handleSaveMetric(metricId: string) {
+    const val = parseFloat(metricInputs[metricId] || '')
+    if (isNaN(val)) return
+    setSavingMetric(metricId)
+    await saveLog(metricId, selectedWeek, val)
+    setSavingMetric(null)
   }
 
   const getRatingEmoji = (rate: number) => {
@@ -252,6 +277,96 @@ export function WeeklySummaryPage() {
               })}
             </div>
           </Card>
+
+          {/* Outcome measurements */}
+          {metrics.length > 0 && (
+            <Card className="p-5">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Outcome Measurements</h3>
+              <div className="flex flex-col gap-6">
+                {metrics.map((metric) => {
+                  const baselineLog = outcomeLogs.find(l => l.metric_id === metric.id && l.week_number === 0)
+                  const currentLog = outcomeLogs.find(l => l.metric_id === metric.id && l.week_number === selectedWeek)
+                  const baselineVal = baselineLog?.value
+                  const currentVal = currentLog?.value
+
+                  let deltaLabel = ''
+                  let deltaColor = 'text-gray-400'
+                  if (baselineVal !== undefined && currentVal !== undefined) {
+                    const delta = currentVal - baselineVal
+                    const improved = metric.lower_is_better ? delta < 0 : delta > 0
+                    deltaColor = delta === 0 ? 'text-gray-400' : improved ? 'text-mint-600 dark:text-mint-400' : 'text-blush-500 dark:text-blush-400'
+                    deltaLabel = `${delta > 0 ? '+' : ''}${delta.toFixed(1)} ${metric.unit}`
+                  }
+
+                  const chartPoints = [
+                    ...(baselineLog ? [{ label: 'Start', value: baselineLog.value }] : []),
+                    ...outcomeLogs
+                      .filter(l => l.metric_id === metric.id && l.week_number > 0)
+                      .map(l => ({ label: `W${l.week_number}`, value: l.value })),
+                  ]
+
+                  return (
+                    <div key={metric.id}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">{metric.name}</span>
+                        {baselineVal !== undefined && currentVal !== undefined && (
+                          <span className={`text-xs font-semibold ${deltaColor}`}>{deltaLabel}</span>
+                        )}
+                      </div>
+
+                      {baselineVal !== undefined && currentVal !== undefined && (
+                        <p className="text-xs text-gray-400 mb-2">
+                          Baseline: {baselineVal} {metric.unit} → Week {selectedWeek}: {currentVal} {metric.unit}
+                        </p>
+                      )}
+
+                      {chartPoints.length >= 2 && (
+                        <ResponsiveContainer width="100%" height={100}>
+                          <LineChart data={chartPoints}>
+                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'currentColor' }} className="text-gray-400" />
+                            <YAxis hide domain={['auto', 'auto']} />
+                            <Tooltip
+                              contentStyle={{
+                                background: 'rgba(30,30,46,0.9)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '12px',
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke="#a78bfa"
+                              strokeWidth={2}
+                              dot={{ fill: '#a78bfa', r: 3 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
+
+                      <div className="flex items-center gap-2 mt-2">
+                        <Input
+                          type="number"
+                          value={metricInputs[metric.id] || ''}
+                          onChange={e => setMetricInputs(prev => ({ ...prev, [metric.id]: e.target.value }))}
+                          placeholder={`This week's ${metric.unit}`}
+                          className="flex-1 text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleSaveMetric(metric.id)}
+                          loading={savingMetric === metric.id}
+                          disabled={!metricInputs[metric.id]}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+          )}
         </div>
       ) : null}
       </div>

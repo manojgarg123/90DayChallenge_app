@@ -45,6 +45,9 @@ Return ONLY valid JSON matching this exact structure, no markdown:
       "weeklyFocus": ["Week 1-3 focus theme", "Week 4-7 focus theme", "Week 8-13 focus theme"],
       "sampleTasks": ["Daily task 1", "Daily task 2", "Daily task 3", "Daily task 4", "Daily task 5"]
     }
+  ],
+  "suggestedMetrics": [
+    { "name": "Metric name (2-3 words)", "unit": "kg / lbs / % / km / etc.", "lowerIsBetter": true }
   ]
 }
 
@@ -53,7 +56,8 @@ Rules:
 - Segments should cover different life areas (physical, mental, nutrition, sleep, habits, etc.)
 - sampleTasks are specific daily actions for that segment (rotate through them each day)
 - Keep task descriptions short (under 40 chars)
-- Be encouraging and actionable`
+- Be encouraging and actionable
+- suggestedMetrics: 1-4 metrics that are directly measurable and relevant to the goal (no subjective metrics like "happiness")`
 
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
@@ -64,7 +68,7 @@ Rules:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
+        max_tokens: 2000,
         system: systemPrompt,
         messages: [{ role: 'user', content: `My 90-day goal: ${goal}` }],
       }),

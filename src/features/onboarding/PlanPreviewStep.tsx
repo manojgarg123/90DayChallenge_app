@@ -85,7 +85,7 @@ export function PlanPreviewStep({ plan, onStart, saving }: PlanPreviewStepProps)
 
       <Button onClick={onStart} loading={saving} size="lg" className="w-full gap-2 mt-2">
         <Rocket size={18} />
-        Start My 90-Day Challenge!
+        Continue to Measurements →
       </Button>
     </div>
   )

@@ -5,7 +5,7 @@ import { supabase, supabaseAnonKey } from '@/lib/supabase'
 import { GoalStep } from './GoalStep'
 import { AnalyzingStep } from './AnalyzingStep'
 import { PlanPreviewStep } from './PlanPreviewStep'
-import type { Segment } from '@/types'
+import { OutcomeSetupStep } from './OutcomeSetupStep'
 
 export interface GeneratedPlan {
   challengeTitle: string
@@ -18,15 +18,23 @@ export interface GeneratedPlan {
     sampleTasks: string[]
   }>
   overview: string
+  suggestedMetrics?: Array<{ name: string; unit: string; lowerIsBetter: boolean }>
+}
+
+interface MetricEntry {
+  localId: string
+  name: string
+  unit: string
+  lowerIsBetter: boolean
+  baselineValue: string
 }
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState<'goal' | 'analyzing' | 'preview'>('goal')
+  const [step, setStep] = useState<'goal' | 'analyzing' | 'preview' | 'outcomes'>('goal')
   const [goalText, setGoalText] = useState('')
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [saving, setSaving] = useState(false)
-
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
 
   async function analyzeGoal(goal: string) {
@@ -40,8 +48,6 @@ export function OnboardingPage() {
 
       console.log('[analyze-goal] Calling edge function via fetch...')
 
-      // Send only apikey header — no Authorization/JWT needed when function
-      // is deployed with --no-verify-jwt flag (which disables gateway JWT check)
       const res = await fetch(`${supabaseUrl}/functions/v1/analyze-goal`, {
         method: 'POST',
         headers: {
@@ -68,7 +74,7 @@ export function OnboardingPage() {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[analyze-goal] Failed:', msg)
       setAnalyzeError(msg)
-      setPlan(generateFallbackPlan(goal))
+      setPlan({ ...generateFallbackPlan(goal), suggestedMetrics: [] })
       setStep('preview')
     }
   }
@@ -77,6 +83,7 @@ export function OnboardingPage() {
     return {
       challengeTitle: `My 90-Day Challenge`,
       overview: `A structured 90-day plan to help you achieve your goal: "${goal}"`,
+      suggestedMetrics: [],
       segments: [
         {
           name: 'Physical Fitness',
@@ -114,7 +121,7 @@ export function OnboardingPage() {
     }
   }
 
-  async function startChallenge() {
+  async function startChallenge(metrics: MetricEntry[] = []) {
     if (!plan) return
     setSaving(true)
 
@@ -171,6 +178,32 @@ export function OnboardingPage() {
         const tasks = generateTasksForSegment(challenge.id, segment.id, seg.sampleTasks)
         const { error: tasksError } = await supabase.from('tasks').insert(tasks)
         if (tasksError) throw tasksError
+      }
+
+      // Save outcome metrics + baselines
+      for (const m of metrics) {
+        const { data: metric, error: metricError } = await supabase
+          .from('outcome_metrics')
+          .insert({
+            challenge_id: challenge.id,
+            user_id: user.id,
+            name: m.name,
+            unit: m.unit,
+            lower_is_better: m.lowerIsBetter,
+          })
+          .select()
+          .single()
+
+        if (!metricError && metric) {
+          await supabase.from('outcome_logs').insert({
+            metric_id: metric.id,
+            challenge_id: challenge.id,
+            user_id: user.id,
+            week_number: 0,
+            value: parseFloat(m.baselineValue),
+            logged_date: startDate,
+          })
+        }
       }
 
       navigate('/dashboard')
@@ -230,7 +263,17 @@ export function OnboardingPage() {
                   <p className="text-xs text-red-500 dark:text-red-500 font-mono break-all">{analyzeError}</p>
                 </div>
               )}
-              <PlanPreviewStep plan={plan} onStart={startChallenge} saving={saving} />
+              <PlanPreviewStep plan={plan} onStart={() => setStep('outcomes')} saving={false} />
+            </motion.div>
+          )}
+          {step === 'outcomes' && plan && (
+            <motion.div key="outcomes" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              <OutcomeSetupStep
+                suggestedMetrics={plan.suggestedMetrics || []}
+                onStart={startChallenge}
+                onSkip={() => startChallenge([])}
+                saving={saving}
+              />
             </motion.div>
           )}
         </AnimatePresence>

@@ -101,3 +101,24 @@ export interface ChallengeWithProgress extends Challenge {
 }
 
 export type ThemeMode = 'light' | 'dark'
+
+export interface OutcomeMetric {
+  id: string
+  challenge_id: string
+  user_id: string
+  name: string
+  unit: string
+  lower_is_better: boolean
+  created_at: string
+}
+
+export interface OutcomeLog {
+  id: string
+  metric_id: string
+  challenge_id: string
+  user_id: string
+  week_number: number
+  value: number
+  logged_date: string
+  created_at: string
+}
