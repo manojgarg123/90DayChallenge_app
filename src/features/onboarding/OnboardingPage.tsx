@@ -46,7 +46,19 @@ export function OnboardingPage() {
 
       console.log('[analyze-goal] Response:', { data, error })
 
-      if (error) throw new Error(`Edge function error: ${error.message}`)
+      if (error) {
+        // Try to extract detailed error from the response body
+        let detail = error.message
+        try {
+          // FunctionsHttpError has a context property with the raw Response
+          const ctx = (error as any).context
+          if (ctx) {
+            const body = await ctx.json()
+            detail = body.details || body.error || JSON.stringify(body)
+          }
+        } catch {}
+        throw new Error(`Edge function error: ${detail}`)
+      }
       if (!data?.plan) throw new Error('No plan returned from edge function')
 
       setPlan(data.plan)
