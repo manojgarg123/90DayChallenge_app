@@ -7,11 +7,24 @@ export const supabaseAnonKey =
 
 export const isMissingConfig = !supabaseUrl || !supabaseAnonKey
 
+// Clear any auth tokens previously stored in localStorage.
+// We use sessionStorage now so sessions end when the browser tab is closed.
+if (typeof window !== 'undefined') {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('sb-') && key.includes('-auth-token')) {
+      localStorage.removeItem(key)
+    }
+  })
+}
+
 export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder', {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    // sessionStorage clears when the browser tab is closed (new session = new login).
+    // localStorage (the default) persists forever across browser restarts.
+    storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
   },
 })
 
