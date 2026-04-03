@@ -22,6 +22,8 @@ export function HistoryPage() {
   const { user } = useAuth()
   const [challenges, setChallenges] = useState<ChallengeWithStats[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) fetchChallenges()
@@ -56,6 +58,31 @@ export function HistoryPage() {
       setChallenges(withStats)
     }
     setLoading(false)
+  }
+
+  async function handleDeactivate(challengeId: string) {
+    setActionLoadingId(challengeId)
+    await supabase
+      .from('challenges')
+      .update({ status: 'abandoned' })
+      .eq('id', challengeId)
+      .eq('user_id', user!.id)
+    setChallenges(prev =>
+      prev.map(c => c.id === challengeId ? { ...c, status: 'abandoned' as const } : c)
+    )
+    setActionLoadingId(null)
+  }
+
+  async function handleDelete(challengeId: string) {
+    setActionLoadingId(challengeId)
+    await supabase
+      .from('challenges')
+      .delete()
+      .eq('id', challengeId)
+      .eq('user_id', user!.id)
+    setChallenges(prev => prev.filter(c => c.id !== challengeId))
+    setConfirmDeleteId(null)
+    setActionLoadingId(null)
   }
 
   const StatusIcon = ({ status }: { status: string }) => {
@@ -149,6 +176,55 @@ export function HistoryPage() {
                   <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">
                     {challenge.completed_tasks} / {challenge.total_tasks} tasks completed
                   </p>
+
+                  {/* Actions */}
+                  {challenge.status === 'active' && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-dark-100">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeactivate(challenge.id)}
+                        loading={actionLoadingId === challenge.id}
+                      >
+                        Deactivate Challenge
+                      </Button>
+                    </div>
+                  )}
+
+                  {(challenge.status === 'abandoned' || challenge.status === 'completed') && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-dark-100">
+                      {confirmDeleteId === challenge.id ? (
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 flex-1">
+                            This will permanently delete all data. Are you sure?
+                          </p>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDelete(challenge.id)}
+                            loading={actionLoadingId === challenge.id}
+                          >
+                            Yes, Delete
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmDeleteId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setConfirmDeleteId(challenge.id)}
+                        >
+                          Delete Challenge
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </Card>
               </motion.div>
             ))}
