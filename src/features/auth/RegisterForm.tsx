@@ -32,7 +32,7 @@ export function RegisterForm({ onLogin }: RegisterFormProps) {
     }
 
     setLoading(true)
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -43,6 +43,9 @@ export function RegisterForm({ onLogin }: RegisterFormProps) {
 
     if (error) {
       setError(error.message)
+    } else if (data.session) {
+      // Email confirmation disabled — user is immediately logged in.
+      // AppShell will detect the session and redirect to /onboarding.
     } else {
       setSuccess(true)
     }
