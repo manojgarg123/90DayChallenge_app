@@ -1,5 +1,5 @@
 // Supabase Edge Function: analyze-goal
-// Analyzes user's 90-day goal using Claude AI and returns a structured plan
+// Analyzes user's challenge goal using Claude AI and returns a structured plan
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 
@@ -14,13 +14,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { goal } = await req.json()
+    const { goal, durationWeeks = 12 } = await req.json()
     if (!goal || typeof goal !== 'string' || goal.length < 10) {
       return new Response(JSON.stringify({ error: 'Invalid goal: must be at least 10 characters' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    const totalDays = durationWeeks * 7
 
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!anthropicKey) {
@@ -30,19 +32,19 @@ Deno.serve(async (req) => {
       })
     }
 
-    const systemPrompt = `You are a world-class fitness and wellness coach. Your job is to analyze a user's 90-day goal and create a comprehensive, actionable plan broken into distinct focus areas (segments).
+    const systemPrompt = `You are a world-class fitness and wellness coach. Your job is to analyze a user's ${durationWeeks}-week (${totalDays}-day) challenge goal and create a comprehensive, actionable plan broken into distinct focus areas (segments).
 
 Return ONLY valid JSON matching this exact structure, no markdown:
 {
-  "challengeTitle": "A motivating title for this challenge (max 60 chars)",
-  "overview": "2-3 sentence overview of the approach (max 200 chars)",
+  "challengeTitle": "A motivating title for this challenge (max 60 chars) — do NOT include '90-Day'; reflect the actual ${durationWeeks}-week duration if relevant",
+  "overview": "2-3 sentence overview of the approach tailored to a ${durationWeeks}-week timeline (max 200 chars)",
   "segments": [
     {
       "name": "Segment name (2-3 words)",
       "description": "What this segment covers (max 80 chars)",
       "icon": "Single relevant emoji",
       "color": "One of: lavender, mint, peach, sky, blush",
-      "weeklyFocus": ["Week 1-3 focus theme", "Week 4-7 focus theme", "Week 8-13 focus theme"],
+      "weeklyFocus": ["Early phase focus theme", "Mid phase focus theme", "Final phase focus theme"],
       "sampleTasks": ["Daily task 1", "Daily task 2", "Daily task 3", "Daily task 4", "Daily task 5"]
     }
   ],
@@ -57,6 +59,7 @@ Rules:
 - sampleTasks are specific daily actions for that segment (rotate through them each day)
 - Keep task descriptions short (under 40 chars)
 - Be encouraging and actionable
+- The plan should be realistic and achievable within ${durationWeeks} weeks (${totalDays} days)
 - suggestedMetrics: 1-4 metrics that are directly measurable and relevant to the goal (no subjective metrics like "happiness")`
 
     const response = await fetch(ANTHROPIC_API_URL, {
@@ -70,7 +73,7 @@ Rules:
         model: 'claude-sonnet-4-6',
         max_tokens: 2000,
         system: systemPrompt,
-        messages: [{ role: 'user', content: `My 90-day goal: ${goal}` }],
+        messages: [{ role: 'user', content: `My ${durationWeeks}-week challenge goal: ${goal}` }],
       }),
     })
 
