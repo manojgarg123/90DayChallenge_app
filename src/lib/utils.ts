@@ -26,7 +26,7 @@ export function formatShortDate(date: string | Date): string {
 }
 
 export function getDaysRemaining(endDate: string): number {
-  return Math.max(0, differenceInDays(new Date(endDate), new Date()))
+  return Math.max(0, differenceInDays(new Date(endDate), new Date()) + 1)
 }
 
 export function getProgressPercentage(completed: number, total: number): number {
