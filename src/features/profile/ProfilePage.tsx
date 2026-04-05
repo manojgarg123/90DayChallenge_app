@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
 import { useAppStore } from '@/store'
-import { getDayNumber, calculateStreak } from '@/lib/utils'
+import { getDayNumber, getChallengeDuration, calculateStreak } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -165,7 +165,7 @@ export function ProfilePage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{challenge.title}</p>
-                <p className="text-xs text-gray-400">Day {dayNumber} of 90 · Active</p>
+                <p className="text-xs text-gray-400">Day {dayNumber} of {challenge ? getChallengeDuration(challenge.start_date, challenge.end_date) : 90} · Active</p>
               </div>
             </div>
           </Card>

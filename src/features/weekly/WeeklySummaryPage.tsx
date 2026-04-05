@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
 import { useOutcomes } from '@/hooks/useOutcomes'
-import { getDayNumber } from '@/lib/utils'
+import { getDayNumber, getChallengeDuration } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -20,7 +20,9 @@ export function WeeklySummaryPage() {
   const { user } = useAuth()
   const { challenge, segments } = useActiveChallenge(user?.id)
   const { metrics, logs: outcomeLogs, saveLog } = useOutcomes(challenge?.id)
-  const currentDay = challenge ? getDayNumber(challenge.start_date) : 1
+  const totalDays = challenge ? getChallengeDuration(challenge.start_date, challenge.end_date) : 84
+  const totalWeeks = Math.ceil(totalDays / 7)
+  const currentDay = challenge ? getDayNumber(challenge.start_date, challenge.end_date) : 1
   const currentWeek = Math.ceil(currentDay / 7)
   const [selectedWeek, setSelectedWeek] = useState(currentWeek)
   const [metricInputs, setMetricInputs] = useState<Record<string, string>>({})
@@ -60,7 +62,7 @@ export function WeeklySummaryPage() {
     setLoading(true)
 
     const startDay = (selectedWeek - 1) * 7 + 1
-    const endDay = Math.min(selectedWeek * 7, 90)
+    const endDay = Math.min(selectedWeek * 7, totalDays)
 
     const [tasksRes, logsRes] = await Promise.all([
       supabase
@@ -165,12 +167,12 @@ export function WeeklySummaryPage() {
             <div className="text-center">
               <p className="font-bold text-gray-900 dark:text-white">Week {selectedWeek}</p>
               <p className="text-xs text-gray-400">
-                Days {(selectedWeek - 1) * 7 + 1}–{Math.min(selectedWeek * 7, 90)}
+                Days {(selectedWeek - 1) * 7 + 1}–{Math.min(selectedWeek * 7, totalDays)}
                 {selectedWeek === currentWeek && ' (current)'}
               </p>
             </div>
             <button
-              onClick={() => setSelectedWeek(w => Math.min(13, w + 1))}
+              onClick={() => setSelectedWeek(w => Math.min(totalWeeks, w + 1))}
               disabled={selectedWeek >= currentWeek}
               className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-dark-100 disabled:opacity-30"
             >

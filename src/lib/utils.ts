@@ -6,11 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getDayNumber(startDate: string): number {
-  const start = new Date(startDate)
+export function getChallengeDuration(startDate: string, endDate: string): number {
+  return differenceInDays(new Date(endDate), new Date(startDate)) + 1
+}
+
+export function getDayNumber(startDate: string, endDate?: string): number {
+  const totalDays = endDate ? getChallengeDuration(startDate, endDate) : 90
   const today = new Date()
-  const diff = differenceInDays(today, start) + 1
-  return Math.max(1, Math.min(90, diff))
+  const diff = differenceInDays(today, new Date(startDate)) + 1
+  return Math.max(1, Math.min(totalDays, diff))
 }
 
 export function getWeekNumber(dayNumber: number): number {

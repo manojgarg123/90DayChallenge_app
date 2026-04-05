@@ -63,7 +63,7 @@ export function OutcomeSetupStep({ suggestedMetrics, onStart, onSkip, saving }: 
           <div className="text-4xl mb-2">📏</div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set Your Baseline</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Track what really changes over 90 days
+            Track what really changes over your challenge
           </p>
         </div>
       </Card>
@@ -139,7 +139,7 @@ export function OutcomeSetupStep({ suggestedMetrics, onStart, onSkip, saving }: 
       </div>
 
       <Button onClick={handleStart} loading={saving} size="lg" className="w-full gap-2">
-        Start My 90-Day Challenge! 🚀
+        Start My Challenge! 🚀
       </Button>
       <button
         onClick={onSkip}

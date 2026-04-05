@@ -28,8 +28,8 @@ export function AuthPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-lavender-400 dark:bg-lavender-500 shadow-pastel mb-4 animate-float">
             <span className="text-2xl">🎯</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">90 Day Challenge</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Transform your life, 90 days at a time</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Meta-Morph</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Transform your life, one challenge at a time</p>
         </motion.div>
 
         <AnimatePresence mode="wait">

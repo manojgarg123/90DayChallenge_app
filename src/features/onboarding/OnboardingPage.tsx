@@ -33,12 +33,14 @@ export function OnboardingPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<'goal' | 'analyzing' | 'preview' | 'outcomes'>('goal')
   const [goalText, setGoalText] = useState('')
+  const [durationWeeks, setDurationWeeks] = useState(12)
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [saving, setSaving] = useState(false)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
 
-  async function analyzeGoal(goal: string) {
+  async function analyzeGoal(goal: string, weeks: number) {
     setGoalText(goal)
+    setDurationWeeks(weeks)
     setAnalyzeError(null)
     setStep('analyzing')
 
@@ -46,21 +48,16 @@ export function OnboardingPage() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
       if (!supabaseUrl || !supabaseAnonKey) throw new Error('Missing Supabase config')
 
-      console.log('[analyze-goal] Calling edge function via fetch...')
-
       const res = await fetch(`${supabaseUrl}/functions/v1/analyze-goal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': supabaseAnonKey,
         },
-        body: JSON.stringify({ goal }),
+        body: JSON.stringify({ goal, durationWeeks: weeks }),
       })
 
-      console.log('[analyze-goal] HTTP status:', res.status)
-
       const payload = await res.json()
-      console.log('[analyze-goal] Response payload:', payload)
 
       if (!res.ok) {
         const detail = payload?.details || payload?.error || JSON.stringify(payload)
@@ -74,15 +71,15 @@ export function OnboardingPage() {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[analyze-goal] Failed:', msg)
       setAnalyzeError(msg)
-      setPlan({ ...generateFallbackPlan(goal), suggestedMetrics: [] })
+      setPlan({ ...generateFallbackPlan(goal, weeks), suggestedMetrics: [] })
       setStep('preview')
     }
   }
 
-  function generateFallbackPlan(goal: string): GeneratedPlan {
+  function generateFallbackPlan(goal: string, weeks: number): GeneratedPlan {
     return {
-      challengeTitle: `My 90-Day Challenge`,
-      overview: `A structured 90-day plan to help you achieve your goal: "${goal}"`,
+      challengeTitle: `My ${weeks}-Week Challenge`,
+      overview: `A structured ${weeks}-week plan to help you achieve your goal: "${goal}"`,
       suggestedMetrics: [],
       segments: [
         {
@@ -136,8 +133,9 @@ export function OnboardingPage() {
         .eq('user_id', user.id)
         .eq('status', 'active')
 
+      const totalDays = durationWeeks * 7
       const startDate = new Date().toISOString().split('T')[0]
-      const endDate = new Date(Date.now() + 89 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const endDate = new Date(Date.now() + (totalDays - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
       // Create challenge
       const { data: challenge, error: challengeError } = await supabase
@@ -174,8 +172,7 @@ export function OnboardingPage() {
 
         if (segError) throw segError
 
-        // Generate 90 days of tasks for this segment
-        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.sampleTasks)
+        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.sampleTasks, totalDays)
         const { error: tasksError } = await supabase.from('tasks').insert(tasks)
         if (tasksError) throw tasksError
       }
@@ -217,10 +214,11 @@ export function OnboardingPage() {
   function generateTasksForSegment(
     challengeId: string,
     segmentId: string,
-    sampleTasks: string[]
+    sampleTasks: string[],
+    totalDays: number
   ) {
     const tasks = []
-    for (let day = 1; day <= 90; day++) {
+    for (let day = 1; day <= totalDays; day++) {
       const week = Math.ceil(day / 7)
       const taskTitle = sampleTasks[day % sampleTasks.length]
       tasks.push({
@@ -263,7 +261,7 @@ export function OnboardingPage() {
                   <p className="text-xs text-red-500 dark:text-red-500 font-mono break-all">{analyzeError}</p>
                 </div>
               )}
-              <PlanPreviewStep plan={plan} onStart={() => setStep('outcomes')} saving={false} />
+              <PlanPreviewStep plan={plan} totalDays={durationWeeks * 7} onStart={() => setStep('outcomes')} saving={false} />
             </motion.div>
           )}
           {step === 'outcomes' && plan && (

@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
 import { useAppStore } from '@/store'
-import { getDayNumber, getDaysRemaining, getProgressPercentage, calculateStreak } from '@/lib/utils'
+import { getDayNumber, getDaysRemaining, getChallengeDuration, getProgressPercentage, calculateStreak } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { Button } from '@/components/ui/Button'
@@ -26,8 +26,9 @@ export function DashboardPage() {
   const [allLogs, setAllLogs] = useState<ProgressLog[]>([])
   const [nudges, setNudges] = useState<Array<{ id: string; message: string; type: string }>>([])
 
-  const dayNumber = challenge ? getDayNumber(challenge.start_date) : 1
+  const dayNumber = challenge ? getDayNumber(challenge.start_date, challenge.end_date) : 1
   const weekNumber = Math.ceil(dayNumber / 7)
+  const totalDays = challenge ? getChallengeDuration(challenge.start_date, challenge.end_date) : 90
 
   useEffect(() => {
     if (challenge) {
@@ -60,6 +61,7 @@ export function DashboardPage() {
   const overallProgress = challenge
     ? getProgressPercentage(allLogs.filter(l => l.status === 'completed').length, dayNumber * segments.length)
     : 0
+
 
   if (loading) {
     return (
@@ -138,7 +140,7 @@ export function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1 min-w-0">
               <h2 className="font-bold text-gray-900 dark:text-white truncate">{challenge.title}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Day {dayNumber} of 90 · Week {weekNumber}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Day {dayNumber} of {totalDays} · Week {weekNumber}</p>
             </div>
             <ProgressRing
               progress={overallProgress}
@@ -169,7 +171,7 @@ export function DashboardPage() {
               <motion.div
                 className="h-full rounded-full bg-gradient-to-r from-lavender-400 to-mint-400"
                 initial={{ width: 0 }}
-                animate={{ width: `${(dayNumber / 90) * 100}%` }}
+                animate={{ width: `${(dayNumber / totalDays) * 100}%` }}
                 transition={{ duration: 1, ease: 'easeOut' }}
               />
             </div>

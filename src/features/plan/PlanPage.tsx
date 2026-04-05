@@ -5,7 +5,7 @@ import { ProfileAvatar } from '@/components/ProfileAvatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
-import { getDayNumber, formatShortDate } from '@/lib/utils'
+import { getDayNumber, getChallengeDuration, formatShortDate } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { addDays, format } from 'date-fns'
@@ -21,9 +21,10 @@ export function PlanPage() {
   const [logs, setLogs] = useState<ProgressLog[]>([])
   const [loadingTasks, setLoadingTasks] = useState(false)
 
-  const currentDay = challenge ? getDayNumber(challenge.start_date) : 1
+  const totalDays = challenge ? getChallengeDuration(challenge.start_date, challenge.end_date) : 84
+  const totalWeeks = Math.ceil(totalDays / 7)
+  const currentDay = challenge ? getDayNumber(challenge.start_date, challenge.end_date) : 1
   const currentWeek = Math.ceil(currentDay / 7)
-  const totalWeeks = 13
 
   useEffect(() => {
     if (challenge) {
@@ -41,7 +42,7 @@ export function PlanPage() {
     if (!challenge) return
     setLoadingTasks(true)
     const startDay = (selectedWeek - 1) * 7 + 1
-    const endDay = Math.min(selectedWeek * 7, 90)
+    const endDay = Math.min(selectedWeek * 7, totalDays)
 
     const [tasksRes, logsRes] = await Promise.all([
       supabase
@@ -92,7 +93,7 @@ export function PlanPage() {
   }
 
   const startDay = (selectedWeek - 1) * 7 + 1
-  const days = Array.from({ length: Math.min(7, 90 - startDay + 1) }, (_, i) => startDay + i)
+  const days = Array.from({ length: Math.min(7, totalDays - startDay + 1) }, (_, i) => startDay + i)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-lavender-50/50 to-white dark:from-dark-200 dark:to-dark-300 pb-24">
@@ -101,7 +102,7 @@ export function PlanPage() {
       <div className="px-4 pt-8 sm:pt-12 pb-4">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">90-Day Plan</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Challenge Plan</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{challenge.title}</p>
           </div>
           <ProfileAvatar />
@@ -174,7 +175,7 @@ export function PlanPage() {
             )}
           </h2>
           <span className="text-xs text-gray-400">
-            Days {startDay}–{Math.min(selectedWeek * 7, 90)}
+            Days {startDay}–{Math.min(selectedWeek * 7, totalDays)}
           </span>
         </div>
       </div>

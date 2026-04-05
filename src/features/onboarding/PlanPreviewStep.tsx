@@ -14,11 +14,12 @@ const SEGMENT_COLORS: Record<string, string> = {
 
 interface PlanPreviewStepProps {
   plan: GeneratedPlan
+  totalDays: number
   onStart: () => void
   saving: boolean
 }
 
-export function PlanPreviewStep({ plan, onStart, saving }: PlanPreviewStepProps) {
+export function PlanPreviewStep({ plan, totalDays, onStart, saving }: PlanPreviewStepProps) {
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-6">
@@ -32,7 +33,7 @@ export function PlanPreviewStep({ plan, onStart, saving }: PlanPreviewStepProps)
 
         <div className="flex items-center gap-4 justify-center py-3 border-t border-b border-gray-100 dark:border-dark-100 mb-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">90</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalDays}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Days</div>
           </div>
           <div className="w-px h-8 bg-gray-200 dark:bg-dark-100" />
@@ -43,7 +44,7 @@ export function PlanPreviewStep({ plan, onStart, saving }: PlanPreviewStepProps)
           <div className="w-px h-8 bg-gray-200 dark:bg-dark-100" />
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              {plan.segments.reduce((acc, s) => acc + s.sampleTasks.length, 0) * 30}
+              {plan.segments.length * totalDays}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Tasks Total</div>
           </div>

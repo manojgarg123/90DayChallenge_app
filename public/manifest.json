@@ -1,7 +1,7 @@
 {
-  "name": "90 Day Challenge",
-  "short_name": "90Day",
-  "description": "Your personal 90-day fitness & wellness challenge tracker",
+  "name": "Meta-Morph",
+  "short_name": "MetaMorph",
+  "description": "Your personal fitness & wellness challenge tracker",
   "theme_color": "#c4b5fd",
   "background_color": "#0f0f1a",
   "display": "standalone",

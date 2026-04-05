@@ -5,7 +5,7 @@ import { Plus, CheckCircle, XCircle, Clock, Trophy } from 'lucide-react'
 import { ProfileAvatar } from '@/components/ProfileAvatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { formatDate, getDaysRemaining } from '@/lib/utils'
+import { formatDate, getDaysRemaining, getChallengeDuration } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -107,7 +107,7 @@ export function HistoryPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Challenge History</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">All your 90-day journeys</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">All your challenges</p>
           </div>
           <ProfileAvatar />
         </div>
@@ -122,7 +122,7 @@ export function HistoryPage() {
           <div className="text-center py-16">
             <Trophy size={48} className="mx-auto mb-4 text-gray-200 dark:text-dark-100" />
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No challenges yet</h3>
-            <p className="text-sm text-gray-400 mb-6">Start your first 90-day challenge!</p>
+            <p className="text-sm text-gray-400 mb-6">Start your first challenge!</p>
             <Button onClick={() => navigate('/onboarding', { state: { newChallenge: true } })}>
               <Plus size={16} />
               New Challenge
@@ -140,9 +140,14 @@ export function HistoryPage() {
                 <Card className="p-5">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white leading-snug line-clamp-1">
-                        {challenge.title}
-                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-900 dark:text-white leading-snug line-clamp-1">
+                          {challenge.title}
+                        </h3>
+                        <span className="text-xs font-medium text-lavender-500 dark:text-lavender-400 bg-lavender-50 dark:bg-lavender-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                          {Math.round(getChallengeDuration(challenge.start_date, challenge.end_date) / 7)} wks
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{challenge.goal_description}</p>
                     </div>
                     <Badge variant={getStatusBadge(challenge.status)} size="sm">
