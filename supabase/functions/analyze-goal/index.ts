@@ -32,35 +32,40 @@ Deno.serve(async (req) => {
       })
     }
 
-    const systemPrompt = `You are a world-class fitness and wellness coach. Your job is to analyze a user's ${durationWeeks}-week (${totalDays}-day) challenge goal and create a comprehensive, actionable plan broken into distinct focus areas (segments).
+    const systemPrompt = `You are an expert fitness and wellness coach. Create a structured ${durationWeeks}-week (${totalDays}-day) challenge plan for the user's goal.
 
-Return ONLY valid JSON matching this exact structure, no markdown:
+OUTPUT RULES — critical:
+- Output ONLY a single valid JSON object. No markdown, no code fences, no explanations before or after.
+- Start your response with { and end with }
+
+JSON structure to follow exactly:
 {
-  "challengeTitle": "A motivating title for this challenge (max 60 chars) — do NOT include '90-Day'; reflect the actual ${durationWeeks}-week duration if relevant",
-  "overview": "2-3 sentence overview of the approach tailored to a ${durationWeeks}-week timeline (max 200 chars)",
+  "challengeTitle": "Short motivating title, max 60 chars. Do NOT say '90-Day'. Reflect the actual ${durationWeeks}-week duration.",
+  "overview": "2-3 sentences describing the overall approach for ${durationWeeks} weeks. Max 200 chars.",
   "segments": [
     {
-      "name": "Segment name (2-3 words)",
-      "description": "What this segment covers (max 80 chars)",
-      "icon": "Single relevant emoji",
-      "color": "One of: lavender, mint, peach, sky, blush",
-      "weeklyFocus": ["Early phase focus theme", "Mid phase focus theme", "Final phase focus theme"],
-      "sampleTasks": ["Daily task 1", "Daily task 2", "Daily task 3", "Daily task 4", "Daily task 5"]
+      "name": "2-3 word segment name",
+      "description": "One sentence on what this segment covers. Max 80 chars.",
+      "icon": "one relevant emoji",
+      "color": "exactly one of: lavender, mint, peach, sky, blush",
+      "weeklyFocus": ["Phase 1 theme (weeks 1-${Math.round(durationWeeks/3)})", "Phase 2 theme (weeks ${Math.round(durationWeeks/3)+1}-${Math.round(durationWeeks*2/3)})", "Phase 3 theme (weeks ${Math.round(durationWeeks*2/3)+1}-${durationWeeks})"],
+      "sampleTasks": ["specific daily action", "specific daily action", "specific daily action", "specific daily action", "specific daily action"]
     }
   ],
   "suggestedMetrics": [
-    { "name": "Metric name (2-3 words)", "unit": "kg / lbs / % / km / etc.", "lowerIsBetter": true }
+    { "name": "2-3 word metric name", "unit": "kg or lbs or % or km or reps or hrs", "lowerIsBetter": false }
   ]
 }
 
-Rules:
-- Create 3-5 segments based on what the goal requires
-- Segments should cover different life areas (physical, mental, nutrition, sleep, habits, etc.)
-- sampleTasks are specific daily actions for that segment (rotate through them each day)
-- Keep task descriptions short (under 40 chars)
-- Be encouraging and actionable
-- The plan should be realistic and achievable within ${durationWeeks} weeks (${totalDays} days)
-- suggestedMetrics: 1-4 metrics that are directly measurable and relevant to the goal (no subjective metrics like "happiness")`
+CONTENT RULES:
+- segments: create 3 to 5 segments covering different areas relevant to the goal (e.g. physical training, nutrition, mindset, sleep, habits)
+- sampleTasks: exactly 5 specific daily actions per segment, each under 40 chars (e.g. "30-min morning run", "Log meals in app", "10-min meditation")
+- weeklyFocus: exactly 3 strings representing early / mid / final phase themes
+- suggestedMetrics: 1 to 4 measurable metrics only (no subjective ones like "mood" or "happiness")
+- The plan must be realistic for ${durationWeeks} weeks
+
+EXAMPLE of one valid segment (do not copy, adapt to the user's actual goal):
+{"name":"Strength Training","description":"Build muscle and improve overall body composition","icon":"💪","color":"lavender","weeklyFocus":["Foundation & form","Progressive overload","Peak & maintain"],"sampleTasks":["45-min weight session","Track sets & reps","Protein within 30min","Mobility warmup","Rest day stretch"]}`
 
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
@@ -70,8 +75,9 @@ Rules:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 2000,
+        temperature: 0.7,
         system: systemPrompt,
         messages: [{ role: 'user', content: `My ${durationWeeks}-week challenge goal: ${goal}` }],
       }),
