@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
 import { useAppStore } from '@/store'
-import { getDayNumber, getProgressPercentage, calculateStreak } from '@/lib/utils'
+import { getDayNumber, getDaysRemaining, getProgressPercentage, calculateStreak } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { Button } from '@/components/ui/Button'
@@ -39,10 +39,10 @@ export function DashboardPage() {
   async function fetchLogs() {
     const { data } = await supabase
       .from('progress_logs')
-      .select('*')
+      .select('*, task:tasks(segment_id)')
       .eq('challenge_id', challenge!.id)
       .order('logged_date', { ascending: false })
-    if (data) setAllLogs(data)
+    if (data) setAllLogs(data as any)
   }
 
   async function fetchNudges() {
@@ -163,7 +163,7 @@ export function DashboardPage() {
           <div className="mt-4">
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
               <span>Overall progress</span>
-              <span>{90 - dayNumber} days left</span>
+              <span>{getDaysRemaining(challenge.end_date)} days left</span>
             </div>
             <div className="w-full h-2 bg-gray-100 dark:bg-dark-100 rounded-full overflow-hidden">
               <motion.div
@@ -181,17 +181,16 @@ export function DashboardPage() {
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm">Focus Areas</h3>
           <div className="flex justify-around flex-wrap gap-3">
             {segments.map((seg, i) => {
-              const segLogs = allLogs.filter(l => {
-                // We need task info to filter by segment — simplified here
-                return l.status === 'completed'
-              })
-              const segProgress = Math.min(100, Math.round(Math.random() * 30) + overallProgress - 10)
+              const completed = allLogs.filter(
+                l => (l as any).task?.segment_id === seg.id && l.status === 'completed'
+              ).length
+              const segProgress = getProgressPercentage(completed, dayNumber)
               const ringColors = ['#a78bfa', '#4ade80', '#fb923c', '#38bdf8', '#fb7185']
               return (
                 <SegmentProgressCard
                   key={seg.id}
                   segment={seg}
-                  progress={Math.max(0, segProgress)}
+                  progress={segProgress}
                   color={ringColors[i % ringColors.length]}
                 />
               )
