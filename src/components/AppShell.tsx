@@ -45,7 +45,7 @@ export function AppShell() {
     }
   }, [user, challenge, authLoading, challengeLoading, location.pathname])
 
-  if (authLoading) {
+  if (authLoading || (!!user && challengeLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-lavender-100 to-mint-50 dark:from-dark-300 dark:to-dark-200">
         <div className="flex flex-col items-center gap-4">

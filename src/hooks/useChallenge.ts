@@ -9,10 +9,7 @@ export function useActiveChallenge(userId: string | undefined) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!userId) {
-      setLoading(false)
-      return
-    }
+    if (!userId) return
     fetchActiveChallenge()
   }, [userId])
 
