@@ -68,7 +68,7 @@ export function PlanPreviewStep({ plan, totalDays, onStart, saving }: PlanPrevie
                   <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{seg.name}</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{seg.description}</p>
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {seg.sampleTasks.slice(0, 3).map((task, j) => (
+                    {seg.tasks.early.slice(0, 3).map((task, j) => (
                       <span
                         key={j}
                         className="text-xs bg-gray-100 dark:bg-dark-100 text-gray-600 dark:text-gray-400 rounded-full px-2 py-0.5"

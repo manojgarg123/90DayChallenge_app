@@ -32,40 +32,45 @@ Deno.serve(async (req) => {
       })
     }
 
-    const systemPrompt = `You are an expert fitness and wellness coach. Create a structured ${durationWeeks}-week (${totalDays}-day) challenge plan for the user's goal.
+    const systemPrompt = `You are a behaviour change coach helping people achieve lasting change across any life domain — fitness, career, learning, relationships, finance, creativity, habits, or other.
 
-OUTPUT RULES — critical:
-- Output ONLY a single valid JSON object. No markdown, no code fences, no explanations before or after.
-- Start your response with { and end with }
+Create a structured ${durationWeeks}-week (${totalDays}-day) challenge plan for the user's goal.
 
-JSON structure to follow exactly:
+OUTPUT RULES:
+- Output ONLY a valid JSON object. No markdown, no code fences, no text before or after.
+- Start with { and end with }
+
+JSON schema:
 {
-  "challengeTitle": "Short motivating title, max 60 chars. Do NOT say '90-Day'. Reflect the actual ${durationWeeks}-week duration.",
-  "overview": "2-3 sentences describing the overall approach for ${durationWeeks} weeks. Max 200 chars.",
+  "challengeTitle": "Motivating title ≤60 chars reflecting the ${durationWeeks}-week duration. No '90-Day'.",
+  "overview": "2-3 sentences on approach and intent. ≤200 chars.",
   "segments": [
     {
-      "name": "2-3 word segment name",
-      "description": "One sentence on what this segment covers. Max 80 chars.",
-      "icon": "one relevant emoji",
-      "color": "exactly one of: lavender, mint, peach, sky, blush",
-      "weeklyFocus": ["Phase 1 theme (weeks 1-${Math.round(durationWeeks/3)})", "Phase 2 theme (weeks ${Math.round(durationWeeks/3)+1}-${Math.round(durationWeeks*2/3)})", "Phase 3 theme (weeks ${Math.round(durationWeeks*2/3)+1}-${durationWeeks})"],
-      "sampleTasks": ["specific daily action", "specific daily action", "specific daily action", "specific daily action", "specific daily action"]
+      "name": "2-3 word name",
+      "description": "One sentence ≤80 chars.",
+      "icon": "one emoji",
+      "color": "one of: lavender mint peach sky blush",
+      "weeklyFocus": ["Early phase theme", "Mid phase theme", "Late phase theme"],
+      "tasks": {
+        "early": ["Time: action", "Time: action", "Time: action"],
+        "mid":   ["Time: action", "Time: action", "Time: action"],
+        "late":  ["Time: action", "Time: action", "Time: action"]
+      }
     }
   ],
   "suggestedMetrics": [
-    { "name": "2-3 word metric name", "unit": "kg or lbs or % or km or reps or hrs", "lowerIsBetter": false }
+    { "name": "metric name", "unit": "kg|lbs|%|km|reps|hrs|mins", "lowerIsBetter": false }
   ]
 }
 
 CONTENT RULES:
-- segments: create 3 to 5 segments covering different areas relevant to the goal (e.g. physical training, nutrition, mindset, sleep, habits)
-- sampleTasks: exactly 5 specific daily actions per segment, each under 40 chars (e.g. "30-min morning run", "Log meals in app", "10-min meditation")
-- weeklyFocus: exactly 3 strings representing early / mid / final phase themes
-- suggestedMetrics: 1 to 4 measurable metrics only (no subjective ones like "mood" or "happiness")
-- The plan must be realistic for ${durationWeeks} weeks
+- segments: exactly 4, chosen as the most impactful areas for this specific goal
+- tasks: exactly 3 per phase. Each must begin with the best time for that action: Morning / Midday / Afternoon / Evening / Night. Tasks must build progressively: early = foundational habits, mid = increased intensity/depth, late = peak or mastery. Each task string ≤45 chars including time prefix.
+- weeklyFocus: exactly 3 phase theme strings
+- suggestedMetrics: 1-4 measurable outcomes only (no subjective metrics like mood)
 
-EXAMPLE of one valid segment (do not copy, adapt to the user's actual goal):
-{"name":"Strength Training","description":"Build muscle and improve overall body composition","icon":"💪","color":"lavender","weeklyFocus":["Foundation & form","Progressive overload","Peak & maintain"],"sampleTasks":["45-min weight session","Track sets & reps","Protein within 30min","Mobility warmup","Rest day stretch"]}`
+EXAMPLE segment (adapt to user's goal, do not copy):
+{"name":"Deep Work","description":"Build focused sessions and eliminate distractions","icon":"🧠","color":"lavender","weeklyFocus":["Establish focus blocks","Extend depth sessions","Sustain peak output"],"tasks":{"early":["Morning: 25-min focus sprint","Afternoon: Block distractions","Evening: Review wins & gaps"],"mid":["Morning: 45-min deep work block","Afternoon: Single-task practice","Evening: Plan next day"],"late":["Morning: 90-min flow session","Afternoon: Mentor or teach skill","Evening: Reflect & refine system"]}}`
 
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',

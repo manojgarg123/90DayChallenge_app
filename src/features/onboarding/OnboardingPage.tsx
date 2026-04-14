@@ -15,7 +15,7 @@ export interface GeneratedPlan {
     icon: string
     color: string
     weeklyFocus: string[]
-    sampleTasks: string[]
+    tasks: { early: string[]; mid: string[]; late: string[] }
   }>
   overview: string
   suggestedMetrics?: Array<{ name: string; unit: string; lowerIsBetter: boolean }>
@@ -86,36 +86,52 @@ export function OnboardingPage() {
       suggestedMetrics: [],
       segments: [
         {
-          name: 'Physical Fitness',
-          description: 'Build strength, endurance, and overall physical health',
-          icon: '💪',
+          name: 'Core Practice',
+          description: 'Build the central daily habit for your goal',
+          icon: '🎯',
           color: 'lavender',
-          weeklyFocus: ['Foundation building', 'Building momentum', 'Peak performance'],
-          sampleTasks: ['30-min workout', 'Daily steps goal', 'Stretching routine'],
-        },
-        {
-          name: 'Nutrition',
-          description: 'Fuel your body with the right foods for optimal performance',
-          icon: '🥗',
-          color: 'mint',
-          weeklyFocus: ['Clean eating habits', 'Meal prep mastery', 'Intuitive eating'],
-          sampleTasks: ['Meal prep Sunday', 'Track macros', 'Drink 2L water'],
+          weeklyFocus: ['Foundation', 'Momentum', 'Mastery'],
+          tasks: {
+            early: ['Morning: 15-min practice', 'Evening: Log progress', 'Night: Plan tomorrow'],
+            mid:   ['Morning: 30-min practice', 'Afternoon: Review & adjust', 'Evening: Reflect on growth'],
+            late:  ['Morning: 45-min practice', 'Afternoon: Teach or share', 'Evening: Weekly milestone check'],
+          },
         },
         {
           name: 'Mindset',
-          description: 'Cultivate mental strength, resilience, and positive thinking',
+          description: 'Cultivate focus, resilience and positive self-talk',
           icon: '🧘',
           color: 'peach',
-          weeklyFocus: ['Awareness', 'Habits', 'Mastery'],
-          sampleTasks: ['10-min meditation', 'Gratitude journal', 'Affirmations'],
+          weeklyFocus: ['Awareness', 'Reframing', 'Ownership'],
+          tasks: {
+            early: ['Morning: 5-min breathing', 'Evening: Gratitude note', 'Night: Affirmations'],
+            mid:   ['Morning: 10-min meditation', 'Afternoon: Stress reset', 'Evening: Journal entry'],
+            late:  ['Morning: 15-min visualisation', 'Afternoon: Mentoring call', 'Evening: Month review'],
+          },
+        },
+        {
+          name: 'Learning',
+          description: 'Deepen knowledge and skills tied to the goal',
+          icon: '📚',
+          color: 'sky',
+          weeklyFocus: ['Concepts', 'Application', 'Mastery'],
+          tasks: {
+            early: ['Morning: Read 10 pages', 'Afternoon: Watch 1 lesson', 'Evening: Write key insight'],
+            mid:   ['Morning: Read 20 pages', 'Afternoon: Practice skill', 'Evening: Teach back concept'],
+            late:  ['Morning: Read 30 pages', 'Afternoon: Apply to project', 'Evening: Peer review work'],
+          },
         },
         {
           name: 'Recovery',
-          description: 'Prioritize sleep, rest, and active recovery for sustained progress',
+          description: 'Protect energy, sleep and sustainability',
           icon: '😴',
-          color: 'sky',
-          weeklyFocus: ['Sleep hygiene', 'Active recovery', 'Stress management'],
-          sampleTasks: ['8h sleep target', 'Evening wind-down', 'Rest day walk'],
+          color: 'mint',
+          weeklyFocus: ['Sleep hygiene', 'Active rest', 'Stress mastery'],
+          tasks: {
+            early: ['Morning: Hydrate & stretch', 'Evening: Screen-free hour', 'Night: 7h sleep target'],
+            mid:   ['Morning: Cold splash & walk', 'Evening: Wind-down routine', 'Night: 8h sleep target'],
+            late:  ['Morning: Full body stretch', 'Evening: Weekly rest plan', 'Night: No phone after 9pm'],
+          },
         },
       ],
     }
@@ -211,7 +227,7 @@ export function OnboardingPage() {
 
         if (segError) throw segError
 
-        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.sampleTasks, totalDays)
+        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.tasks, totalDays)
         const { error: tasksError } = await supabase.from('tasks').insert(tasks)
         if (tasksError) throw tasksError
       }
@@ -255,23 +271,25 @@ export function OnboardingPage() {
   function generateTasksForSegment(
     challengeId: string,
     segmentId: string,
-    sampleTasks: string[],
+    tasks: { early: string[]; mid: string[]; late: string[] },
     totalDays: number
   ) {
-    const tasks = []
+    const result = []
+    const phase1End = Math.round(totalDays / 3)
+    const phase2End = Math.round(totalDays * 2 / 3)
     for (let day = 1; day <= totalDays; day++) {
-      const week = Math.ceil(day / 7)
-      const taskTitle = sampleTasks[day % sampleTasks.length]
-      tasks.push({
+      const pool = day <= phase1End ? tasks.early : day <= phase2End ? tasks.mid : tasks.late
+      const title = pool[day % pool.length]
+      result.push({
         challenge_id: challengeId,
         segment_id: segmentId,
-        title: taskTitle,
+        title,
         day_number: day,
-        week_number: week,
+        week_number: Math.ceil(day / 7),
         frequency: 'daily',
       })
     }
-    return tasks
+    return result
   }
 
   return (
