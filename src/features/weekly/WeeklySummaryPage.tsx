@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveChallenge } from '@/hooks/useChallenge'
 import { useOutcomes } from '@/hooks/useOutcomes'
+import { addDays, format } from 'date-fns'
 import { getDayNumber, getChallengeDuration } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -63,6 +64,8 @@ export function WeeklySummaryPage() {
 
     const startDay = (selectedWeek - 1) * 7 + 1
     const endDay = Math.min(selectedWeek * 7, totalDays)
+    const weekStartDate = format(addDays(new Date(challenge.start_date), startDay - 1), 'yyyy-MM-dd')
+    const weekEndDate   = format(addDays(new Date(challenge.start_date), endDay - 1),   'yyyy-MM-dd')
 
     const [tasksRes, logsRes] = await Promise.all([
       supabase
@@ -75,8 +78,8 @@ export function WeeklySummaryPage() {
         .from('progress_logs')
         .select('*, task:tasks(day_number, segment_id)')
         .eq('challenge_id', challenge.id)
-        .gte('day_number', startDay)
-        .lte('day_number', endDay),
+        .gte('logged_date', weekStartDate)
+        .lte('logged_date', weekEndDate),
     ])
 
     const tasks = tasksRes.data || []
