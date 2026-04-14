@@ -76,8 +76,8 @@ export function OnboardingPage() {
       for (const seg of plan.segments) {
         if (!seg.tasks?.early || !seg.tasks?.mid || !seg.tasks?.late) {
           throw new Error(
-            `Edge function returned old format for segment "${seg.name}". ` +
-            `Please redeploy the edge function: npx supabase functions deploy analyze-goal`
+            `Segment "${seg.name}" missing tasks structure. Got keys: ${JSON.stringify(Object.keys(seg))}. ` +
+            `tasks value: ${JSON.stringify(seg.tasks ?? seg.sampleTasks ?? 'undefined')}`
           )
         }
       }
