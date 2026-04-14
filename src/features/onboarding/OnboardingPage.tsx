@@ -68,7 +68,21 @@ export function OnboardingPage() {
       }
       if (!payload?.plan) throw new Error('No plan returned from edge function')
 
-      setPlan(payload.plan)
+      const plan = payload.plan
+      // Validate the plan has the expected tasks structure (catches stale edge function deployments)
+      if (!Array.isArray(plan.segments) || plan.segments.length === 0) {
+        throw new Error('Invalid plan: no segments returned')
+      }
+      for (const seg of plan.segments) {
+        if (!seg.tasks?.early || !seg.tasks?.mid || !seg.tasks?.late) {
+          throw new Error(
+            `Edge function returned old format for segment "${seg.name}". ` +
+            `Please redeploy the edge function: npx supabase functions deploy analyze-goal`
+          )
+        }
+      }
+
+      setPlan(plan)
       setStep('preview')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

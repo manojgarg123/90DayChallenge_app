@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card'
 const MESSAGES = [
   "Reading your goal...",
   "Identifying key focus areas...",
-  "Designing your 90-day roadmap...",
+  "Designing your challenge roadmap...",
   "Building daily action plans...",
   "Finalizing your challenge...",
 ]
