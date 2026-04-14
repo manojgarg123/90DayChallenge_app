@@ -1,19 +1,51 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAppStore } from '@/store'
 import type { Challenge, Segment, Task, ProgressLog } from '@/types'
 
 export function useActiveChallenge(userId: string | undefined) {
+  const { selectedChallengeId, setSelectedChallengeId } = useAppStore()
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [segments, setSegments] = useState<Segment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!userId) return
-    fetchActiveChallenge()
-  }, [userId])
+    if (selectedChallengeId) {
+      fetchChallengeById(selectedChallengeId)
+    } else if (userId) {
+      fetchMostRecentActive()
+    }
+  }, [userId, selectedChallengeId])
 
-  async function fetchActiveChallenge() {
+  async function fetchChallengeById(id: string) {
+    try {
+      setLoading(true)
+      setChallenge(null)
+      setSegments([])
+      const { data, error } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') throw error
+
+      if (!data || data.status !== 'active') {
+        // Selection is stale (challenge deactivated/deleted) — clear it
+        setSelectedChallengeId(null)
+        return
+      }
+      setChallenge(data)
+      await fetchSegments(data.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load challenge')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function fetchMostRecentActive() {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -30,6 +62,9 @@ export function useActiveChallenge(userId: string | undefined) {
       if (data) {
         setChallenge(data)
         await fetchSegments(data.id)
+      } else {
+        setChallenge(null)
+        setSegments([])
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load challenge')
@@ -48,7 +83,28 @@ export function useActiveChallenge(userId: string | undefined) {
     if (!error && data) setSegments(data)
   }
 
-  return { challenge, segments, loading, error, refetch: fetchActiveChallenge }
+  return { challenge, segments, loading, error, refetch: fetchMostRecentActive }
+}
+
+export function useActiveChallenges(userId: string | undefined) {
+  const [challenges, setChallenges] = useState<Challenge[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return }
+    supabase
+      .from('challenges')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setChallenges(data)
+        setLoading(false)
+      })
+  }, [userId])
+
+  return { challenges, loading }
 }
 
 export function useTodayTasks(challengeId: string | undefined, dayNumber: number) {

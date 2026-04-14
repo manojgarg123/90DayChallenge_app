@@ -8,6 +8,7 @@ import { useActiveChallenge } from '@/hooks/useChallenge'
 import { getDayNumber, getChallengeDuration, formatShortDate } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { ChallengeSelector } from '@/components/ChallengeSelector'
 import { addDays, format } from 'date-fns'
 import type { Task, ProgressLog } from '@/types'
 
@@ -108,6 +109,8 @@ export function PlanPage() {
           <ProfileAvatar />
         </div>
       </div>
+
+      <ChallengeSelector userId={user?.id} />
 
       {/* Segment legend */}
       <div className="px-4 mb-4">

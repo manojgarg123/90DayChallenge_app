@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { ChallengeSelector } from '@/components/ChallengeSelector'
 
 export function WeeklySummaryPage() {
   const { user } = useAuth()
@@ -155,6 +156,8 @@ export function WeeklySummaryPage() {
           <ProfileAvatar />
         </div>
       </div>
+
+      <ChallengeSelector userId={user?.id} />
 
       {/* Week selector */}
       <div className="px-4 mb-4">

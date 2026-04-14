@@ -10,6 +10,7 @@ import { getDayNumber } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Input'
+import { ChallengeSelector } from '@/components/ChallengeSelector'
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😫', label: 'Rough' },
@@ -70,6 +71,8 @@ export function LogPage() {
           <ProfileAvatar />
         </div>
       </div>
+
+      <ChallengeSelector userId={user?.id} />
 
       <div className="px-4 pb-2 flex flex-col gap-4">
         {/* Progress header */}
