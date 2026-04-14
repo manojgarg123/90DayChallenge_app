@@ -20,9 +20,25 @@ const MOOD_OPTIONS = [
   { value: 5, emoji: '🤩', label: 'Amazing' },
 ]
 
+const TIME_SECTIONS = ['Morning', 'Midday', 'Afternoon', 'Evening', 'Night'] as const
+
+function getTimeSection(title: string): string {
+  const prefix = title.split(':')[0].trim()
+  return (TIME_SECTIONS as readonly string[]).includes(prefix) ? prefix : 'Other'
+}
+
+function stripTimePrefix(title: string): string {
+  const colon = title.indexOf(':')
+  if (colon === -1) return title
+  const prefix = title.slice(0, colon).trim()
+  return (TIME_SECTIONS as readonly string[]).includes(prefix)
+    ? title.slice(colon + 1).trim()
+    : title
+}
+
 export function LogPage() {
   const { user } = useAuth()
-  const { challenge, segments } = useActiveChallenge(user?.id)
+  const { challenge } = useActiveChallenge(user?.id)
   const dayNumber = challenge ? getDayNumber(challenge.start_date) : 1
   const { tasks, logs, loading, logTask } = useTodayTasks(challenge?.id, dayNumber)
 
@@ -40,13 +56,14 @@ export function LogPage() {
   const allDone = totalTasks > 0 && completedCount === totalTasks
   const progressPct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
 
-  // Group tasks by segment
-  const tasksBySegment = tasks.reduce((acc, task) => {
-    const segId = task.segment_id
-    if (!acc[segId]) acc[segId] = []
-    acc[segId].push(task)
-    return acc
-  }, {} as Record<string, typeof tasks>)
+  // Group tasks by time of day in defined order
+  const tasksByTime: Record<string, typeof tasks> = {}
+  for (const section of TIME_SECTIONS) {
+    const sectionTasks = tasks.filter(t => getTimeSection(t.title) === section)
+    if (sectionTasks.length > 0) tasksByTime[section] = sectionTasks
+  }
+  const otherTasks = tasks.filter(t => getTimeSection(t.title) === 'Other')
+  if (otherTasks.length > 0) tasksByTime['Other'] = otherTasks
 
   if (loading) {
     return (
@@ -140,30 +157,25 @@ export function LogPage() {
           </AnimatePresence>
         </Card>
 
-        {/* Tasks by segment */}
-        {segments.map((seg, segIdx) => {
-          const segTasks = tasksBySegment[seg.id] || []
-          if (!segTasks.length) return null
-
-          const segLogs = logs.filter(l => segTasks.some(t => t.id === l.task_id))
-          const segCompleted = segLogs.filter(l => l.status === 'completed').length
+        {/* Tasks grouped by time of day */}
+        {Object.entries(tasksByTime).map(([timeSection, sectionTasks]) => {
+          const sectionLogs = logs.filter(l => sectionTasks.some(t => t.id === l.task_id))
+          const sectionCompleted = sectionLogs.filter(l => l.status === 'completed').length
 
           return (
-            <Card key={seg.id} className="p-4">
+            <Card key={timeSection} className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">{seg.icon}</span>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{seg.name}</h3>
-                  <p className="text-xs text-gray-400">{segCompleted}/{segTasks.length} done</p>
-                </div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{timeSection}</h3>
+                <span className="text-xs text-gray-400">{sectionCompleted}/{sectionTasks.length} done</span>
               </div>
 
               <div className="flex flex-col gap-2">
-                {segTasks.map(task => {
+                {sectionTasks.map(task => {
                   const log = logs.find(l => l.task_id === task.id)
                   const isExpanded = expandedTask === task.id
                   const isCompleted = log?.status === 'completed'
                   const isSkipped = log?.status === 'skipped'
+                  const segmentIcon = (task as any).segment?.icon || '🎯'
 
                   return (
                     <div key={task.id}>
@@ -175,7 +187,6 @@ export function LogPage() {
                             'bg-gray-50 dark:bg-dark-100/50'}
                         `}
                       >
-                        {/* Quick complete toggle */}
                         <button
                           onClick={() => handleLog(task.id, isCompleted ? 'skipped' : 'completed')}
                           className="flex-shrink-0"
@@ -187,8 +198,10 @@ export function LogPage() {
                           )}
                         </button>
 
+                        <span className="text-base flex-shrink-0">{segmentIcon}</span>
+
                         <span className={`flex-1 text-sm ${isCompleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                          {task.title}
+                          {stripTimePrefix(task.title)}
                         </span>
 
                         <div className="flex items-center gap-1">
