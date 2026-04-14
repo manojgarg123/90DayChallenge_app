@@ -105,8 +105,8 @@ create table if not exists public.tasks (
   segment_id    uuid references public.segments(id) on delete cascade not null,
   title         text not null,
   description   text,
-  day_number    integer not null check (day_number between 1 and 90),
-  week_number   integer not null check (week_number between 1 and 13),
+  day_number    integer not null check (day_number >= 1),
+  week_number   integer not null check (week_number >= 1),
   frequency     text not null default 'daily' check (frequency in ('daily', 'weekly', 'once')),
   created_at    timestamptz default now() not null
 );

@@ -37,6 +37,7 @@ export function OnboardingPage() {
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [saving, setSaving] = useState(false)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   async function analyzeGoal(goal: string, weeks: number) {
     setGoalText(goal)
@@ -121,6 +122,7 @@ export function OnboardingPage() {
   async function startChallenge(metrics: MetricEntry[] = []) {
     if (!plan) return
     setSaving(true)
+    setSaveError(null)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -205,7 +207,9 @@ export function OnboardingPage() {
 
       navigate('/dashboard')
     } catch (err) {
-      console.error('Failed to start challenge:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Failed to start challenge:', msg)
+      setSaveError(msg)
     } finally {
       setSaving(false)
     }
@@ -271,6 +275,7 @@ export function OnboardingPage() {
                 onStart={startChallenge}
                 onSkip={() => startChallenge([])}
                 saving={saving}
+                saveError={saveError}
               />
             </motion.div>
           )}
