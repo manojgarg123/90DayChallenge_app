@@ -75,10 +75,7 @@ export function OnboardingPage() {
       }
       for (const seg of plan.segments) {
         if (!seg.tasks?.early || !seg.tasks?.mid || !seg.tasks?.late) {
-          throw new Error(
-            `Segment "${seg.name}" missing tasks structure. Got keys: ${JSON.stringify(Object.keys(seg))}. ` +
-            `tasks value: ${JSON.stringify(seg.tasks ?? seg.sampleTasks ?? 'undefined')}`
-          )
+          throw new Error(`AI returned an incomplete plan for segment "${seg.name}" — using fallback plan instead.`)
         }
       }
 

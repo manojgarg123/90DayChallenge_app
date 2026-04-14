@@ -114,6 +114,33 @@ EXAMPLE segment (adapt to user's goal, do not copy):
       }
     }
 
+    // Normalize segments: ensure every segment has tasks.early/mid/late
+    // Claude Haiku sometimes returns sampleTasks (old format) — convert it here so
+    // the frontend always receives the correct structure regardless of model output.
+    if (Array.isArray(plan.segments)) {
+      plan.segments = plan.segments.map((seg: any) => {
+        if (seg.tasks?.early && seg.tasks?.mid && seg.tasks?.late) {
+          return seg // Already correct format
+        }
+        // Fall back: sampleTasks or tasks as flat array → split into thirds
+        const flat: string[] = Array.isArray(seg.tasks)
+          ? seg.tasks
+          : Array.isArray(seg.sampleTasks)
+          ? seg.sampleTasks
+          : []
+        const third = Math.max(1, Math.ceil(flat.length / 3))
+        return {
+          ...seg,
+          tasks: {
+            early: flat.slice(0, third),
+            mid:   flat.slice(third, third * 2),
+            late:  flat.slice(third * 2),
+          },
+          sampleTasks: undefined, // strip old field
+        }
+      })
+    }
+
     return new Response(JSON.stringify({ plan }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
