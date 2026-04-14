@@ -5,6 +5,7 @@ import { Plus, CheckCircle, XCircle, Clock, Trophy } from 'lucide-react'
 import { ProfileAvatar } from '@/components/ProfileAvatar'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useAppStore } from '@/store'
 import { formatDate, getDaysRemaining, getChallengeDuration } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -20,6 +21,7 @@ interface ChallengeWithStats extends Challenge {
 export function HistoryPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { setSelectedChallengeId } = useAppStore()
   const [challenges, setChallenges] = useState<ChallengeWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -138,49 +140,63 @@ export function HistoryPage() {
                 transition={{ delay: i * 0.05 }}
               >
                 <Card className="p-5">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-gray-900 dark:text-white leading-snug line-clamp-1">
-                          {challenge.title}
-                        </h3>
-                        <span className="text-xs font-medium text-lavender-500 dark:text-lavender-400 bg-lavender-50 dark:bg-lavender-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
-                          {Math.round(getChallengeDuration(challenge.start_date, challenge.end_date) / 7)} wks
-                        </span>
+                  <div
+                    className={challenge.status === 'active' ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}
+                    onClick={challenge.status === 'active'
+                      ? () => { setSelectedChallengeId(challenge.id); navigate('/dashboard') }
+                      : undefined
+                    }
+                  >
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-gray-900 dark:text-white leading-snug line-clamp-1">
+                            {challenge.title}
+                          </h3>
+                          <span className="text-xs font-medium text-lavender-500 dark:text-lavender-400 bg-lavender-50 dark:bg-lavender-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                            {Math.round(getChallengeDuration(challenge.start_date, challenge.end_date) / 7)} wks
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{challenge.goal_description}</p>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{challenge.goal_description}</p>
+                      <Badge variant={getStatusBadge(challenge.status)} size="sm">
+                        <StatusIcon status={challenge.status} />
+                        <span className="ml-1 capitalize">{challenge.status}</span>
+                      </Badge>
                     </div>
-                    <Badge variant={getStatusBadge(challenge.status)} size="sm">
-                      <StatusIcon status={challenge.status} />
-                      <span className="ml-1 capitalize">{challenge.status}</span>
-                    </Badge>
-                  </div>
 
-                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
-                    <span>📅 {formatDate(challenge.start_date)}</span>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      <span>📅 {formatDate(challenge.start_date)}</span>
+                      {challenge.status === 'active' && (
+                        <span>⏳ {getDaysRemaining(challenge.end_date)} days left</span>
+                      )}
+                      {challenge.status !== 'active' && (
+                        <span>🏁 {formatDate(challenge.end_date)}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-2 bg-gray-100 dark:bg-dark-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-lavender-400 to-mint-400 transition-all"
+                          style={{ width: `${challenge.completion_rate}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                        {challenge.completion_rate}%
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">
+                      {challenge.completed_tasks} / {challenge.total_tasks} tasks completed
+                    </p>
+
                     {challenge.status === 'active' && (
-                      <span>⏳ {getDaysRemaining(challenge.end_date)} days left</span>
-                    )}
-                    {challenge.status !== 'active' && (
-                      <span>🏁 {formatDate(challenge.end_date)}</span>
+                      <p className="text-xs text-lavender-400 dark:text-lavender-500 mt-2 text-right">
+                        Tap to view →
+                      </p>
                     )}
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-gray-100 dark:bg-dark-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-lavender-400 to-mint-400 transition-all"
-                        style={{ width: `${challenge.completion_rate}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                      {challenge.completion_rate}%
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">
-                    {challenge.completed_tasks} / {challenge.total_tasks} tasks completed
-                  </p>
 
                   {/* Actions */}
                   {challenge.status === 'active' && (

@@ -6,10 +6,12 @@ interface AppState {
   theme: ThemeMode
   activeChallenge: Challenge | null
   profile: Profile | null
+  selectedChallengeId: string | null
   setTheme: (theme: ThemeMode) => void
   toggleTheme: () => void
   setActiveChallenge: (challenge: Challenge | null) => void
   setProfile: (profile: Profile | null) => void
+  setSelectedChallengeId: (id: string | null) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -18,6 +20,7 @@ export const useAppStore = create<AppState>()(
       theme: 'dark',
       activeChallenge: null,
       profile: null,
+      selectedChallengeId: null,
       setTheme: (theme) => {
         set({ theme })
         if (theme === 'dark') {
@@ -32,6 +35,7 @@ export const useAppStore = create<AppState>()(
       },
       setActiveChallenge: (challenge) => set({ activeChallenge: challenge }),
       setProfile: (profile) => set({ profile }),
+      setSelectedChallengeId: (id) => set({ selectedChallengeId: id }),
     }),
     {
       name: '90day-app-store',

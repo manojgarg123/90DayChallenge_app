@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { SegmentProgressCard } from './SegmentProgressCard'
 import { TodayTasksList } from './TodayTasksList'
 import { NudgesBanner } from './NudgesBanner'
+import { ChallengeSelector } from '@/components/ChallengeSelector'
 import type { ProgressLog } from '@/types'
 
 export function DashboardPage() {
@@ -125,6 +126,8 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <ChallengeSelector userId={user?.id} />
 
       <div className="px-4 pb-2 flex flex-col gap-4">
         {/* Nudges Banner */}
