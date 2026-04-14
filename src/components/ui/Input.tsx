@@ -5,10 +5,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   icon?: React.ReactNode
+  rightElement?: React.ReactNode
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, icon, ...props }, ref) => {
+  ({ className, label, error, icon, rightElement, ...props }, ref) => {
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
@@ -30,11 +31,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               'focus:outline-none focus:ring-2 focus:ring-lavender-300/50 dark:focus:ring-lavender-500/30',
               'transition-all duration-200',
               icon && 'pl-10',
+              rightElement && 'pr-10',
               error && 'border-red-400 focus:border-red-400 focus:ring-red-300/50',
               className
             )}
             {...props}
           />
+          {rightElement && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              {rightElement}
+            </div>
+          )}
         </div>
         {error && (
           <p className="text-sm text-red-500">{error}</p>

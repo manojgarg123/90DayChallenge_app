@@ -24,12 +24,13 @@ interface OutcomeSetupStepProps {
   onStart: (metrics: MetricEntry[]) => void
   onSkip: () => void
   saving: boolean
+  saveError?: string | null
 }
 
 let nextId = 0
 function genId() { return String(nextId++) }
 
-export function OutcomeSetupStep({ suggestedMetrics, onStart, onSkip, saving }: OutcomeSetupStepProps) {
+export function OutcomeSetupStep({ suggestedMetrics, onStart, onSkip, saving, saveError }: OutcomeSetupStepProps) {
   const [metrics, setMetrics] = useState<MetricEntry[]>(
     suggestedMetrics.map(m => ({
       localId: genId(),
@@ -137,6 +138,12 @@ export function OutcomeSetupStep({ suggestedMetrics, onStart, onSkip, saving }: 
           Add custom metric
         </button>
       </div>
+
+      {saveError && (
+        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-600 dark:text-red-400">
+          Failed to save: {saveError}
+        </div>
+      )}
 
       <Button onClick={handleStart} loading={saving} size="lg" className="w-full gap-2">
         Start My Challenge! 🚀

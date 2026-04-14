@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import { LoginForm } from './LoginForm'
 import { RegisterForm } from './RegisterForm'
 import { ForgotPasswordForm } from './ForgotPasswordForm'
@@ -7,7 +8,8 @@ import { ForgotPasswordForm } from './ForgotPasswordForm'
 type AuthView = 'login' | 'register' | 'forgot'
 
 export function AuthPage() {
-  const [view, setView] = useState<AuthView>('login')
+  const location = useLocation()
+  const [view, setView] = useState<AuthView>(location.state?.view ?? 'login')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-lavender-100 via-mint-50 to-peach-50 dark:from-dark-300 dark:via-dark-200 dark:to-dark-100 flex items-center justify-center p-4">

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { LandingPage } from './features/landing/LandingPage'
 import { AuthPage } from './features/auth/AuthPage'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
@@ -15,7 +16,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<Navigate to="/auth" replace />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />

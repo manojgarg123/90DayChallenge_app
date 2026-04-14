@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Mail, Lock, User } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -14,6 +14,8 @@ export function RegisterForm({ onLogin }: RegisterFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -94,22 +96,32 @@ export function RegisterForm({ onLogin }: RegisterFormProps) {
           autoComplete="email"
         />
         <Input
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           label="Password"
           placeholder="At least 8 characters"
           value={password}
           onChange={e => setPassword(e.target.value)}
           icon={<Lock size={16} />}
+          rightElement={
+            <button type="button" tabIndex={-1} onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
           required
           autoComplete="new-password"
         />
         <Input
-          type="password"
+          type={showConfirmPassword ? 'text' : 'password'}
           label="Confirm password"
           placeholder="••••••••"
           value={confirmPassword}
           onChange={e => setConfirmPassword(e.target.value)}
           icon={<Lock size={16} />}
+          rightElement={
+            <button type="button" tabIndex={-1} onClick={() => setShowConfirmPassword(v => !v)} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>
+              {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
           required
           autoComplete="new-password"
         />

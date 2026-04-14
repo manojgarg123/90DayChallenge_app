@@ -37,6 +37,9 @@ export function OnboardingPage() {
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [saving, setSaving] = useState(false)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [pendingMetrics, setPendingMetrics] = useState<MetricEntry[] | null>(null)
+  const [activeCount, setActiveCount] = useState(0)
 
   async function analyzeGoal(goal: string, weeks: number) {
     setGoalText(goal)
@@ -118,20 +121,56 @@ export function OnboardingPage() {
     }
   }
 
+  // Check phase — counts active challenges and shows confirmation dialog if any exist
   async function startChallenge(metrics: MetricEntry[] = []) {
     if (!plan) return
+    setSaveError(null)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSaveError('Not authenticated'); return }
+
+    const { count } = await supabase
+      .from('challenges')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+
+    if (count && count > 0) {
+      setActiveCount(count)
+      setPendingMetrics(metrics)
+      return
+    }
+
+    await executeStartChallenge(metrics)
+  }
+
+  function confirmAddChallenge() {
+    if (pendingMetrics !== null) executeStartChallenge(pendingMetrics)
+    setPendingMetrics(null)
+  }
+
+  function cancelAddChallenge() {
+    setPendingMetrics(null)
+  }
+
+  // Execute phase — saves challenge, segments, tasks and metrics to the database
+  async function executeStartChallenge(metrics: MetricEntry[] = []) {
+    if (!plan) return
     setSaving(true)
+    setSaveError(null)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      // Mark any existing active challenge as abandoned before starting a new one
-      await supabase
-        .from('challenges')
-        .update({ status: 'abandoned' })
-        .eq('user_id', user.id)
-        .eq('status', 'active')
+      // NOTE: Auto-deactivation of existing challenges has been disabled.
+      // The app now supports multiple concurrent active challenges.
+      // Users are prompted before adding a second challenge (see startChallenge above).
+      // await supabase
+      //   .from('challenges')
+      //   .update({ status: 'abandoned' })
+      //   .eq('user_id', user.id)
+      //   .eq('status', 'active')
 
       const totalDays = durationWeeks * 7
       const startDate = new Date().toISOString().split('T')[0]
@@ -205,7 +244,9 @@ export function OnboardingPage() {
 
       navigate('/dashboard')
     } catch (err) {
-      console.error('Failed to start challenge:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Failed to start challenge:', msg)
+      setSaveError(msg)
     } finally {
       setSaving(false)
     }
@@ -271,11 +312,61 @@ export function OnboardingPage() {
                 onStart={startChallenge}
                 onSkip={() => startChallenge([])}
                 saving={saving}
+                saveError={saveError}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Confirmation dialog — shown when user already has active challenges */}
+      <AnimatePresence>
+        {pendingMetrics !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 8 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-sm bg-white dark:bg-dark-100 rounded-3xl shadow-pastel-lg p-6"
+            >
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">⚠️</div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Active Challenge Exists
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+                  You already have{' '}
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {activeCount} active challenge{activeCount !== 1 ? 's' : ''}
+                  </span>
+                  . Do you want to continue adding another?
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelAddChallenge}
+                  className="flex-1 py-3 px-4 rounded-2xl border border-gray-200 dark:border-dark-50 text-gray-700 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-dark-50 transition-colors"
+                >
+                  No, Discard
+                </button>
+                <button
+                  onClick={confirmAddChallenge}
+                  disabled={saving}
+                  className="flex-1 py-3 px-4 rounded-2xl bg-lavender-400 hover:bg-lavender-500 text-white font-medium text-sm transition-colors disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Yes, Add'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
