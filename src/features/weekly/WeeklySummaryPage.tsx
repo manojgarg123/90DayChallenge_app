@@ -46,8 +46,8 @@ export function WeeklySummaryPage() {
   }, [challenge])
 
   useEffect(() => {
-    if (challenge) fetchWeeklySummary()
-  }, [challenge, selectedWeek])
+    if (challenge && segments.length > 0) fetchWeeklySummary()
+  }, [challenge, selectedWeek, segments])
 
   // Pre-fill metric inputs from existing logs for the selected week
   useEffect(() => {
