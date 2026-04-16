@@ -63,6 +63,11 @@ create table if not exists public.challenges (
   goal_object         text,
   goal_outcome        text,
   identity_statement  text,
+  current_frequency   text,
+  available_time      text,
+  experience_level    text,
+  constraints         text[],
+  stages_of_change    text,
   start_date          date not null,
   end_date            date not null,
   status              text not null default 'active' check (status in ('active', 'completed', 'abandoned')),
@@ -74,6 +79,11 @@ create table if not exists public.challenges (
 -- alter table public.challenges add column if not exists goal_object text;
 -- alter table public.challenges add column if not exists goal_outcome text;
 -- alter table public.challenges add column if not exists identity_statement text;
+-- alter table public.challenges add column if not exists current_frequency text;
+-- alter table public.challenges add column if not exists available_time text;
+-- alter table public.challenges add column if not exists experience_level text;
+-- alter table public.challenges add column if not exists constraints text[];
+-- alter table public.challenges add column if not exists stages_of_change text;
 
 alter table public.challenges enable row level security;
 

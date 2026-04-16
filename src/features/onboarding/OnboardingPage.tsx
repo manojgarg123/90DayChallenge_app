@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase, supabaseAnonKey } from '@/lib/supabase'
 import { GoalStep } from './GoalStep'
+import { ContextIntakeA } from './ContextIntakeA'
+import { ContextIntakeB } from './ContextIntakeB'
+import { ContextIntakeC } from './ContextIntakeC'
 import { AnalyzingStep } from './AnalyzingStep'
 import { PlanPreviewStep } from './PlanPreviewStep'
 import { OutcomeSetupStep } from './OutcomeSetupStep'
@@ -31,12 +34,17 @@ interface MetricEntry {
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState<'goal' | 'analyzing' | 'preview' | 'outcomes'>('goal')
+  const [step, setStep] = useState<'goal' | 'contextA' | 'contextB' | 'contextC' | 'analyzing' | 'preview' | 'outcomes'>('goal')
   const [goalVerb, setGoalVerb] = useState('')
   const [goalObject, setGoalObject] = useState('')
   const [goalOutcome, setGoalOutcome] = useState('')
   const [identityStatement, setIdentityStatement] = useState('')
   const [durationWeeks, setDurationWeeks] = useState(12)
+  const [currentFrequency, setCurrentFrequency] = useState('')
+  const [availableTime, setAvailableTime] = useState('')
+  const [experienceLevel, setExperienceLevel] = useState('')
+  const [constraints, setConstraints] = useState<string[]>([])
+  const [stagesOfChange, setStagesOfChange] = useState('')
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [saving, setSaving] = useState(false)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
@@ -44,16 +52,41 @@ export function OnboardingPage() {
   const [pendingMetrics, setPendingMetrics] = useState<MetricEntry[] | null>(null)
   const [activeCount, setActiveCount] = useState(0)
 
-  async function analyzeGoal(verb: string, object: string, outcome: string, identity: string, weeks: number) {
+  function handleGoalComplete(verb: string, object: string, outcome: string, identity: string, weeks: number) {
     setGoalVerb(verb)
     setGoalObject(object)
     setGoalOutcome(outcome)
     setIdentityStatement(identity)
     setDurationWeeks(weeks)
+    setStep('contextA')
+  }
+
+  function handleContextAComplete(frequency: string) {
+    setCurrentFrequency(frequency)
+    setStep('contextB')
+  }
+
+  function handleContextBComplete(time: string) {
+    setAvailableTime(time)
+    setStep('contextC')
+  }
+
+  function handleContextCComplete(data: { experienceLevel: string; constraints: string[]; stagesOfChange: string }) {
+    setExperienceLevel(data.experienceLevel)
+    setConstraints(data.constraints)
+    setStagesOfChange(data.stagesOfChange)
+    triggerAnalysis(data.experienceLevel, data.constraints, data.stagesOfChange)
+  }
+
+  async function triggerAnalysis(
+    expLevel: string,
+    constr: string[],
+    stages: string,
+  ) {
     setAnalyzeError(null)
     setStep('analyzing')
 
-    const goalText = `I want to ${verb} ${object} so that I can ${outcome}`
+    const goalText = `I want to ${goalVerb} ${goalObject} so that I can ${goalOutcome}`
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -67,11 +100,16 @@ export function OnboardingPage() {
         },
         body: JSON.stringify({
           goal: goalText,
-          goalVerb: verb,
-          goalObject: object,
-          goalOutcome: outcome,
-          identityStatement: identity,
-          durationWeeks: weeks,
+          goalVerb,
+          goalObject,
+          goalOutcome,
+          identityStatement,
+          currentFrequency,
+          availableTime,
+          experienceLevel: expLevel,
+          constraints: constr,
+          stagesOfChange: stages,
+          durationWeeks,
         }),
       })
 
@@ -100,7 +138,7 @@ export function OnboardingPage() {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[analyze-goal] Failed:', msg)
       setAnalyzeError(msg)
-      setPlan({ ...generateFallbackPlan(goalText, weeks), suggestedMetrics: [] })
+      setPlan({ ...generateFallbackPlan(goalText, durationWeeks), suggestedMetrics: [] })
       setStep('preview')
     }
   }
@@ -231,6 +269,11 @@ export function OnboardingPage() {
           goal_object: goalObject || null,
           goal_outcome: goalOutcome || null,
           identity_statement: identityStatement || null,
+          current_frequency: currentFrequency || null,
+          available_time: availableTime || null,
+          experience_level: experienceLevel || null,
+          constraints: constraints.length > 0 ? constraints : null,
+          stages_of_change: stagesOfChange || null,
           start_date: startDate,
           end_date: endDate,
           status: 'active',
@@ -336,7 +379,33 @@ export function OnboardingPage() {
         <AnimatePresence mode="wait">
           {step === 'goal' && (
             <motion.div key="goal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <GoalStep onAnalyze={analyzeGoal} />
+              <GoalStep onAnalyze={handleGoalComplete} />
+            </motion.div>
+          )}
+          {step === 'contextA' && (
+            <motion.div key="contextA" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}>
+              <ContextIntakeA
+                goalVerb={goalVerb}
+                goalObject={goalObject}
+                onNext={handleContextAComplete}
+                onBack={() => setStep('goal')}
+              />
+            </motion.div>
+          )}
+          {step === 'contextB' && (
+            <motion.div key="contextB" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}>
+              <ContextIntakeB
+                onNext={handleContextBComplete}
+                onBack={() => setStep('contextA')}
+              />
+            </motion.div>
+          )}
+          {step === 'contextC' && (
+            <motion.div key="contextC" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}>
+              <ContextIntakeC
+                onNext={handleContextCComplete}
+                onBack={() => setStep('contextB')}
+              />
             </motion.div>
           )}
           {step === 'analyzing' && (
