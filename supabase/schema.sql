@@ -60,6 +60,7 @@ create table if not exists public.challenges (
   title               text not null,
   goal_description    text not null,
   goal_verb           text,
+  goal_object         text,
   goal_outcome        text,
   identity_statement  text,
   start_date          date not null,
@@ -70,6 +71,7 @@ create table if not exists public.challenges (
 
 -- Migration for existing databases (run if table already exists):
 -- alter table public.challenges add column if not exists goal_verb text;
+-- alter table public.challenges add column if not exists goal_object text;
 -- alter table public.challenges add column if not exists goal_outcome text;
 -- alter table public.challenges add column if not exists identity_statement text;
 

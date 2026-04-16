@@ -33,6 +33,7 @@ export function OnboardingPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<'goal' | 'analyzing' | 'preview' | 'outcomes'>('goal')
   const [goalVerb, setGoalVerb] = useState('')
+  const [goalObject, setGoalObject] = useState('')
   const [goalOutcome, setGoalOutcome] = useState('')
   const [identityStatement, setIdentityStatement] = useState('')
   const [durationWeeks, setDurationWeeks] = useState(12)
@@ -43,15 +44,16 @@ export function OnboardingPage() {
   const [pendingMetrics, setPendingMetrics] = useState<MetricEntry[] | null>(null)
   const [activeCount, setActiveCount] = useState(0)
 
-  async function analyzeGoal(verb: string, outcome: string, identity: string, weeks: number) {
+  async function analyzeGoal(verb: string, object: string, outcome: string, identity: string, weeks: number) {
     setGoalVerb(verb)
+    setGoalObject(object)
     setGoalOutcome(outcome)
     setIdentityStatement(identity)
     setDurationWeeks(weeks)
     setAnalyzeError(null)
     setStep('analyzing')
 
-    const goalText = `I want to ${verb} so that I can ${outcome}`
+    const goalText = `I want to ${verb} ${object} so that I can ${outcome}`
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -66,6 +68,7 @@ export function OnboardingPage() {
         body: JSON.stringify({
           goal: goalText,
           goalVerb: verb,
+          goalObject: object,
           goalOutcome: outcome,
           identityStatement: identity,
           durationWeeks: weeks,
@@ -222,9 +225,10 @@ export function OnboardingPage() {
           user_id: user.id,
           title: plan.challengeTitle,
           goal_description: goalVerb
-            ? `I want to ${goalVerb} so that I can ${goalOutcome}`
+            ? `I want to ${goalVerb} ${goalObject} so that I can ${goalOutcome}`
             : goalOutcome,
           goal_verb: goalVerb || null,
+          goal_object: goalObject || null,
           goal_outcome: goalOutcome || null,
           identity_statement: identityStatement || null,
           start_date: startDate,
@@ -337,7 +341,7 @@ export function OnboardingPage() {
           )}
           {step === 'analyzing' && (
             <motion.div key="analyzing" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-              <AnalyzingStep goal={goalVerb ? `I want to ${goalVerb} so that I can ${goalOutcome}` : goalOutcome} />
+              <AnalyzingStep goal={goalVerb ? `I want to ${goalVerb} ${goalObject} so that I can ${goalOutcome}` : goalOutcome} />
             </motion.div>
           )}
           {step === 'preview' && plan && (

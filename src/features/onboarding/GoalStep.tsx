@@ -7,33 +7,50 @@ import { Button } from '@/components/ui/Button'
 const GOAL_VERBS = ['run', 'learn', 'quit', 'build', 'lose', 'save', 'practice', 'meditate', 'write']
 const DURATION_OPTIONS = [4, 6, 8, 10, 12, 16]
 
+const VERB_OBJECT_PLACEHOLDERS: Record<string, string> = {
+  run:      'a 5k / half marathon / every morning',
+  learn:    'guitar / Spanish / to code',
+  quit:     'smoking / sugar / social media',
+  build:    'muscle / a daily habit / confidence',
+  lose:     'weight / 5 kg / body fat',
+  save:     'money / £500/month / an emergency fund',
+  practice: 'guitar / mindfulness / public speaking',
+  meditate: 'daily / for 10 mins / consistently',
+  write:    'a journal / 500 words/day / a novel',
+}
+
 interface GoalStepProps {
-  onAnalyze: (goalVerb: string, goalOutcome: string, identityStatement: string, durationWeeks: number) => void
+  onAnalyze: (goalVerb: string, goalObject: string, goalOutcome: string, identityStatement: string, durationWeeks: number) => void
 }
 
 export function GoalStep({ onAnalyze }: GoalStepProps) {
   const [selectedVerb, setSelectedVerb] = useState('')
   const [customVerb, setCustomVerb] = useState('')
   const [showCustom, setShowCustom] = useState(false)
+  const [goalObject, setGoalObject] = useState('')
   const [goalOutcome, setGoalOutcome] = useState('')
   const [identityStatement, setIdentityStatement] = useState('')
   const [durationWeeks, setDurationWeeks] = useState(12)
 
   const goalVerb = showCustom ? customVerb.trim() : selectedVerb
+  const objectPlaceholder = VERB_OBJECT_PLACEHOLDERS[goalVerb] ?? 'describe what specifically…'
 
   const canProceed =
     goalVerb.length > 0 &&
+    goalObject.trim().length >= 2 &&
     goalOutcome.trim().length >= 10 &&
     identityStatement.trim().length >= 5
 
   function handleVerbSelect(verb: string) {
     setSelectedVerb(verb)
     setShowCustom(false)
+    setGoalObject('')
   }
 
   function handleOtherSelect() {
     setSelectedVerb('')
     setShowCustom(true)
+    setGoalObject('')
   }
 
   return (
@@ -49,7 +66,7 @@ export function GoalStep({ onAnalyze }: GoalStepProps) {
       </div>
 
       {/* Field 1: Goal Verb */}
-      <div className="mb-5">
+      <div className="mb-4">
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
           I want to…
         </p>
@@ -93,13 +110,29 @@ export function GoalStep({ onAnalyze }: GoalStepProps) {
         )}
       </div>
 
-      {/* Field 2: Goal Outcome */}
-      <div className="mb-5">
+      {/* Field 2: Goal Object (what) — appears once a verb is chosen */}
+      {goalVerb && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            <span className="text-lavender-500 dark:text-lavender-400">{goalVerb}</span>… what?
+          </p>
+          <Input
+            placeholder={objectPlaceholder}
+            value={goalObject}
+            onChange={e => setGoalObject(e.target.value)}
+            maxLength={80}
+            autoFocus
+          />
+        </div>
+      )}
+
+      {/* Field 3: Goal Outcome (why) */}
+      <div className="mb-4">
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
           …so that I can…
         </p>
         <Input
-          placeholder="run a 5k / feel confident / have energy for my kids"
+          placeholder="feel confident / have energy for my kids / finish my first race"
           value={goalOutcome}
           onChange={e => setGoalOutcome(e.target.value)}
           maxLength={150}
@@ -109,8 +142,8 @@ export function GoalStep({ onAnalyze }: GoalStepProps) {
         )}
       </div>
 
-      {/* Field 3: Identity Statement */}
-      <div className="mb-5">
+      {/* Field 4: Identity Statement */}
+      <div className="mb-4">
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
           Who do you want to become?
         </p>
@@ -152,16 +185,16 @@ export function GoalStep({ onAnalyze }: GoalStepProps) {
       </div>
 
       {/* Preview sentence */}
-      {goalVerb && goalOutcome.trim().length >= 10 && (
+      {goalVerb && goalObject.trim().length >= 2 && goalOutcome.trim().length >= 10 && (
         <div className="mb-5 p-3 rounded-2xl bg-lavender-50 dark:bg-lavender-500/10 border border-lavender-200 dark:border-lavender-500/30">
           <p className="text-sm text-lavender-700 dark:text-lavender-300">
-            "I want to <strong>{goalVerb}</strong> so that I can {goalOutcome.trim()}"
+            "I want to <strong>{goalVerb} {goalObject.trim()}</strong> so that I can {goalOutcome.trim()}"
           </p>
         </div>
       )}
 
       <Button
-        onClick={() => onAnalyze(goalVerb, goalOutcome.trim(), identityStatement.trim(), durationWeeks)}
+        onClick={() => onAnalyze(goalVerb, goalObject.trim(), goalOutcome.trim(), identityStatement.trim(), durationWeeks)}
         disabled={!canProceed}
         size="lg"
         className="w-full gap-2"
