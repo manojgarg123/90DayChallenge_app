@@ -206,9 +206,16 @@ export function LogPage() {
 
                         <span className="text-base flex-shrink-0">{segmentIcon}</span>
 
-                        <span className={`flex-1 text-sm ${isCompleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                          {getTaskDisplayTitle(task)}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-sm ${isCompleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                            {getTaskDisplayTitle(task)}
+                          </span>
+                          {task.floor_task && !isCompleted && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 italic">
+                              {task.floor_task}
+                            </p>
+                          )}
+                        </div>
 
                         <div className="flex items-center gap-1">
                           {!isCompleted && (

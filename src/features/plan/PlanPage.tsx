@@ -258,14 +258,21 @@ export function PlanPage() {
                         const taskLog = dayLogs.find(l => l.task_id === task.id)
                         const done = taskLog?.status === 'completed'
                         return (
-                          <div key={task.id} className="flex items-center gap-2">
-                            <span className="text-xs">
+                          <div key={task.id} className="flex items-start gap-2">
+                            <span className="text-xs mt-0.5 flex-shrink-0">
                               {(task as any).segment?.icon || '🎯'}
                             </span>
-                            <span className={`text-xs ${done ? 'line-through text-gray-400 dark:text-gray-600' : isFuture ? 'text-gray-500 dark:text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                              {task.title}
-                            </span>
-                            {done && <span className="text-xs">✅</span>}
+                            <div className="min-w-0">
+                              <span className={`text-xs ${done ? 'line-through text-gray-400 dark:text-gray-600' : isFuture ? 'text-gray-500 dark:text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                {task.title}
+                              </span>
+                              {task.floor_task && !done && (
+                                <p className="text-xs text-gray-400 dark:text-gray-500 italic mt-0.5">
+                                  {task.floor_task}
+                                </p>
+                              )}
+                            </div>
+                            {done && <span className="text-xs flex-shrink-0">✅</span>}
                           </div>
                         )
                       })}

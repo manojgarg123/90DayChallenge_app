@@ -102,6 +102,11 @@ export function TodayTasksList({ challengeId, dayNumber, onLogComplete }: TodayT
                     }`}>
                       {task.title}
                     </p>
+                    {task.floor_task && !isCompleted && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 italic">
+                        {task.floor_task}
+                      </p>
+                    )}
                     {(task as any).segment && (
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {(task as any).segment.icon} {(task as any).segment.name}
