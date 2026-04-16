@@ -200,7 +200,7 @@ export function GoalStep({ onAnalyze }: GoalStepProps) {
         className="w-full gap-2"
       >
         <Sparkles size={18} />
-        Analyze My Goal with AI
+        Continue
       </Button>
     </Card>
   )
