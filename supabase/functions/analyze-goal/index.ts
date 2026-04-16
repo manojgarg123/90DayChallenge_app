@@ -1,5 +1,6 @@
 // Supabase Edge Function: analyze-goal
-// Analyzes user's challenge goal using Claude AI and returns a structured plan
+// Generates challenge plan STRUCTURE only (title, segments, metrics — no tasks).
+// Tasks are generated separately by generate-tasks for better quality and speed.
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 
@@ -14,30 +15,38 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { goal, durationWeeks = 12 } = await req.json()
+    const body = await req.json()
+    const {
+      goal,
+      goalVerb = '',
+      goalObject = '',
+      goalOutcome = '',
+      durationWeeks = 12,
+    } = body
+
     if (!goal || typeof goal !== 'string' || goal.length < 10) {
-      return new Response(JSON.stringify({ error: 'Invalid goal: must be at least 10 characters' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({ error: 'Invalid goal: must be at least 10 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const totalDays = durationWeeks * 7
 
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!anthropicKey) {
-      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured in Supabase secrets' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    const systemPrompt = `You are a behaviour change coach helping people achieve lasting change across any life domain — fitness, career, learning, relationships, finance, creativity, habits, or other.
+    const systemPrompt = `You are a behaviour change coach helping people achieve lasting change across any life domain.
 
-Create a structured ${durationWeeks}-week (${totalDays}-day) challenge plan for the user's goal.
+Create a ${durationWeeks}-week (${totalDays}-day) challenge plan STRUCTURE for the user's goal.
 
 OUTPUT RULES:
-- Output ONLY a valid JSON object. No markdown, no code fences, no text before or after.
+- Output ONLY valid JSON. No markdown, no code fences, no text before or after.
 - Start with { and end with }
 
 JSON schema:
@@ -46,16 +55,11 @@ JSON schema:
   "overview": "2-3 sentences on approach and intent. ≤200 chars.",
   "segments": [
     {
-      "name": "2-3 word name",
+      "name": "Goal-domain-specific 2-3 word name. NOT generic like Core Practice, Mindset, Learning, Recovery.",
       "description": "One sentence ≤80 chars.",
       "icon": "one emoji",
       "color": "one of: lavender mint peach sky blush",
-      "weeklyFocus": ["Early phase theme", "Mid phase theme", "Late phase theme"],
-      "tasks": {
-        "early": ["Time: action", "Time: action", "Time: action"],
-        "mid":   ["Time: action", "Time: action", "Time: action"],
-        "late":  ["Time: action", "Time: action", "Time: action"]
-      }
+      "weeklyFocus": ["Early phase theme", "Mid phase theme", "Late phase theme"]
     }
   ],
   "suggestedMetrics": [
@@ -63,14 +67,24 @@ JSON schema:
   ]
 }
 
-CONTENT RULES:
-- segments: exactly 4, chosen as the most impactful areas for this specific goal
-- tasks: exactly 3 per phase. Each must begin with the best time for that action: Morning / Midday / Afternoon / Evening / Night. Tasks must build progressively: early = foundational habits, mid = increased intensity/depth, late = peak or mastery. Each task string ≤45 chars including time prefix.
-- weeklyFocus: exactly 3 phase theme strings
-- suggestedMetrics: 1-4 measurable outcomes only (no subjective metrics like mood)
+SEGMENT NAMING RULES — this is critical:
+- Choose 4 segments that are the most impactful sub-domains for THIS specific goal
+- Names must reflect the goal domain, NOT generic self-help labels
+- Running goal → Running Form, Endurance Building, Injury Prevention, Race Mindset
+- Weight loss → Movement, Nutrition Habits, Sleep Quality, Body Confidence
+- Piano learning → Technique, Ear Training, Music Theory, Performance
+- Career change → Skill Building, Networking, Portfolio Work, Mental Resilience
+- Meditation → Breath Practice, Body Awareness, Mindset Reframes, Daily Ritual
 
-EXAMPLE segment (adapt to user's goal, do not copy):
-{"name":"Deep Work","description":"Build focused sessions and eliminate distractions","icon":"🧠","color":"lavender","weeklyFocus":["Establish focus blocks","Extend depth sessions","Sustain peak output"],"tasks":{"early":["Morning: 25-min focus sprint","Afternoon: Block distractions","Evening: Review wins & gaps"],"mid":["Morning: 45-min deep work block","Afternoon: Single-task practice","Evening: Plan next day"],"late":["Morning: 90-min flow session","Afternoon: Mentor or teach skill","Evening: Reflect & refine system"]}}`
+OTHER RULES:
+- segments: exactly 4
+- weeklyFocus: exactly 3 phase theme strings per segment
+- suggestedMetrics: 1-4 measurable outcomes only (no subjective metrics like mood)
+- Do NOT include tasks — tasks are generated separately`
+
+    const userMessage = goalVerb
+      ? `My ${durationWeeks}-week challenge: I want to ${goalVerb} ${goalObject} so that I can ${goalOutcome}`
+      : `My ${durationWeeks}-week challenge goal: ${goal}`
 
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
@@ -81,10 +95,10 @@ EXAMPLE segment (adapt to user's goal, do not copy):
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
+        max_tokens: 1200,
         temperature: 0.7,
         system: systemPrompt,
-        messages: [{ role: 'user', content: `My ${durationWeeks}-week challenge goal: ${goal}` }],
+        messages: [{ role: 'user', content: userMessage }],
       }),
     })
 
@@ -108,37 +122,10 @@ EXAMPLE segment (adapt to user's goal, do not copy):
         plan = JSON.parse(jsonMatch[0])
       } else {
         return new Response(
-          JSON.stringify({ error: 'Failed to parse Claude response as JSON', details: rawContent.slice(0, 200) }),
+          JSON.stringify({ error: 'Failed to parse Claude response', details: rawContent.slice(0, 200) }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-    }
-
-    // Normalize segments: ensure every segment has tasks.early/mid/late
-    // Claude Haiku sometimes returns sampleTasks (old format) — convert it here so
-    // the frontend always receives the correct structure regardless of model output.
-    if (Array.isArray(plan.segments)) {
-      plan.segments = plan.segments.map((seg: any) => {
-        if (seg.tasks?.early && seg.tasks?.mid && seg.tasks?.late) {
-          return seg // Already correct format
-        }
-        // Fall back: sampleTasks or tasks as flat array → split into thirds
-        const flat: string[] = Array.isArray(seg.tasks)
-          ? seg.tasks
-          : Array.isArray(seg.sampleTasks)
-          ? seg.sampleTasks
-          : []
-        const third = Math.max(1, Math.ceil(flat.length / 3))
-        return {
-          ...seg,
-          tasks: {
-            early: flat.slice(0, third),
-            mid:   flat.slice(third, third * 2),
-            late:  flat.slice(third * 2),
-          },
-          sampleTasks: undefined, // strip old field
-        }
-      })
     }
 
     return new Response(JSON.stringify({ plan }), {

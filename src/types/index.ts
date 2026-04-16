@@ -35,6 +35,8 @@ export interface Task {
   challenge_id: string
   segment_id: string
   title: string
+  floor_task: string | null
+  time_of_day: 'morning' | 'midday' | 'afternoon' | 'evening' | 'night' | null
   description: string | null
   day_number: number
   week_number: number

@@ -15,8 +15,12 @@ import type { Task, ProgressLog } from '@/types'
 const BADGE_VARIANTS = ['lavender', 'mint', 'peach', 'sky', 'blush'] as const
 
 const TIME_ORDER = ['Morning', 'Midday', 'Afternoon', 'Evening', 'Night']
-function getTimeRank(title: string): number {
-  const prefix = title.split(':')[0].trim()
+const TIME_OF_DAY_ORDER = ['morning', 'midday', 'afternoon', 'evening', 'night']
+
+// Use structured time_of_day field when available, fall back to parsing title prefix for old tasks
+function getTaskTimeRank(task: { title: string; time_of_day?: string | null }): number {
+  if (task.time_of_day) return TIME_OF_DAY_ORDER.indexOf(task.time_of_day) ?? 999
+  const prefix = task.title.split(':')[0].trim()
   const idx = TIME_ORDER.indexOf(prefix)
   return idx === -1 ? 999 : idx
 }
@@ -250,7 +254,7 @@ export function PlanPage() {
 
                   {dayTasks.length > 0 && (
                     <div className="flex flex-col gap-1.5 pl-8 sm:pl-12">
-                      {[...dayTasks].sort((a, b) => getTimeRank(a.title) - getTimeRank(b.title)).map(task => {
+                      {[...dayTasks].sort((a, b) => getTaskTimeRank(a) - getTaskTimeRank(b)).map(task => {
                         const taskLog = dayLogs.find(l => l.task_id === task.id)
                         const done = taskLog?.status === 'completed'
                         return (

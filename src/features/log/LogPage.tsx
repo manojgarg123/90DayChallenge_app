@@ -22,18 +22,24 @@ const MOOD_OPTIONS = [
 
 const TIME_SECTIONS = ['Morning', 'Midday', 'Afternoon', 'Evening', 'Night'] as const
 
-function getTimeSection(title: string): string {
-  const prefix = title.split(':')[0].trim()
+// Use structured time_of_day field when available, fall back to parsing title prefix for old tasks
+function getTaskTimeSection(task: { title: string; time_of_day?: string | null }): string {
+  if (task.time_of_day) {
+    return task.time_of_day.charAt(0).toUpperCase() + task.time_of_day.slice(1)
+  }
+  const prefix = task.title.split(':')[0].trim()
   return (TIME_SECTIONS as readonly string[]).includes(prefix) ? prefix : 'Other'
 }
 
-function stripTimePrefix(title: string): string {
-  const colon = title.indexOf(':')
-  if (colon === -1) return title
-  const prefix = title.slice(0, colon).trim()
+// New tasks have no time prefix in title; old tasks still need the prefix stripped
+function getTaskDisplayTitle(task: { title: string; time_of_day?: string | null }): string {
+  if (task.time_of_day) return task.title
+  const colon = task.title.indexOf(':')
+  if (colon === -1) return task.title
+  const prefix = task.title.slice(0, colon).trim()
   return (TIME_SECTIONS as readonly string[]).includes(prefix)
-    ? title.slice(colon + 1).trim()
-    : title
+    ? task.title.slice(colon + 1).trim()
+    : task.title
 }
 
 export function LogPage() {
@@ -59,10 +65,10 @@ export function LogPage() {
   // Group tasks by time of day in defined order
   const tasksByTime: Record<string, typeof tasks> = {}
   for (const section of TIME_SECTIONS) {
-    const sectionTasks = tasks.filter(t => getTimeSection(t.title) === section)
+    const sectionTasks = tasks.filter(t => getTaskTimeSection(t) === section)
     if (sectionTasks.length > 0) tasksByTime[section] = sectionTasks
   }
-  const otherTasks = tasks.filter(t => getTimeSection(t.title) === 'Other')
+  const otherTasks = tasks.filter(t => getTaskTimeSection(t) === 'Other')
   if (otherTasks.length > 0) tasksByTime['Other'] = otherTasks
 
   if (loading) {
@@ -201,7 +207,7 @@ export function LogPage() {
                         <span className="text-base flex-shrink-0">{segmentIcon}</span>
 
                         <span className={`flex-1 text-sm ${isCompleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                          {stripTimePrefix(task.title)}
+                          {getTaskDisplayTitle(task)}
                         </span>
 
                         <div className="flex items-center gap-1">

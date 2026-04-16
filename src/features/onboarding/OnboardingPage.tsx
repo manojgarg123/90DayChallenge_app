@@ -11,17 +11,23 @@ import { AnalyzingStep } from './AnalyzingStep'
 import { PlanPreviewStep } from './PlanPreviewStep'
 import { OutcomeSetupStep } from './OutcomeSetupStep'
 
+export interface TaskObj {
+  main: string
+  floor: string
+  time_of_day: 'morning' | 'midday' | 'afternoon' | 'evening' | 'night'
+}
+
 export interface GeneratedPlan {
   challengeTitle: string
+  overview: string
   segments: Array<{
     name: string
     description: string
     icon: string
     color: string
     weeklyFocus: string[]
-    tasks: { early: string[]; mid: string[]; late: string[] }
+    tasks?: { early: TaskObj[]; mid: TaskObj[]; late: TaskObj[] }
   }>
-  overview: string
   suggestedMetrics?: Array<{ name: string; unit: string; lowerIsBetter: boolean }>
 }
 
@@ -47,6 +53,8 @@ export function OnboardingPage() {
   const [constraints, setConstraints] = useState<string[]>([])
   const [stagesOfChange, setStagesOfChange] = useState('')
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
+  const [tasksReady, setTasksReady] = useState(false)
+  const [tasksError, setTasksError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -79,69 +87,107 @@ export function OnboardingPage() {
     triggerAnalysis(data.experienceLevel, data.constraints, data.stagesOfChange)
   }
 
-  async function triggerAnalysis(
+  async function triggerAnalysis(expLevel: string, constr: string[], stages: string) {
+    setAnalyzeError(null)
+    setTasksError(null)
+    setTasksReady(false)
+    setStep('analyzing')
+
+    const goalText = `I want to ${goalVerb} ${goalObject} so that I can ${goalOutcome}`
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setAnalyzeError('Missing Supabase config')
+      setPlan({ ...generateFallbackPlan(goalText, durationWeeks), suggestedMetrics: [] })
+      setStep('preview')
+      generateFallbackTasks()
+      return
+    }
+
+    // ── Step 1: Get plan structure (fast, ~1-2s) ──────────────────────────────
+    let structurePlan: GeneratedPlan
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/analyze-goal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': supabaseAnonKey },
+        body: JSON.stringify({ goal: goalText, goalVerb, goalObject, goalOutcome, durationWeeks }),
+      })
+      const payload = await res.json()
+      if (!res.ok || !payload?.plan?.segments?.length) {
+        throw new Error(payload?.error ?? `Edge function error (${res.status})`)
+      }
+      structurePlan = payload.plan
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[analyze-goal] Failed:', msg)
+      setAnalyzeError(msg)
+      structurePlan = generateFallbackPlan(goalText, durationWeeks)
+    }
+
+    setPlan(structurePlan)
+    setStep('preview')
+
+    // ── Step 2: Generate tasks in background (runs while user reads preview) ──
+    generateTasksInBackground(structurePlan.segments, expLevel, constr, stages)
+  }
+
+  async function generateTasksInBackground(
+    segments: GeneratedPlan['segments'],
     expLevel: string,
     constr: string[],
     stages: string,
   ) {
-    setAnalyzeError(null)
-    setStep('analyzing')
-
-    const goalText = `I want to ${goalVerb} ${goalObject} so that I can ${goalOutcome}`
-
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      if (!supabaseUrl || !supabaseAnonKey) throw new Error('Missing Supabase config')
-
-      const res = await fetch(`${supabaseUrl}/functions/v1/analyze-goal`, {
+      const res = await fetch(`${supabaseUrl}/functions/v1/generate-tasks`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseAnonKey,
-        },
+        headers: { 'Content-Type': 'application/json', 'apikey': supabaseAnonKey },
         body: JSON.stringify({
-          goal: goalText,
-          goalVerb,
-          goalObject,
-          goalOutcome,
-          identityStatement,
-          currentFrequency,
-          availableTime,
+          segments: segments.map(s => ({ name: s.name, description: s.description })),
+          goalVerb, goalObject, goalOutcome, identityStatement,
+          currentFrequency, availableTime,
           experienceLevel: expLevel,
           constraints: constr,
           stagesOfChange: stages,
           durationWeeks,
         }),
       })
-
       const payload = await res.json()
-
-      if (!res.ok) {
-        const detail = payload?.details || payload?.error || JSON.stringify(payload)
-        throw new Error(`Edge function error (${res.status}): ${detail}`)
-      }
-      if (!payload?.plan) throw new Error('No plan returned from edge function')
-
-      const plan = payload.plan
-      // Validate the plan has the expected tasks structure (catches stale edge function deployments)
-      if (!Array.isArray(plan.segments) || plan.segments.length === 0) {
-        throw new Error('Invalid plan: no segments returned')
-      }
-      for (const seg of plan.segments) {
-        if (!seg.tasks?.early || !seg.tasks?.mid || !seg.tasks?.late) {
-          throw new Error(`AI returned an incomplete plan for segment "${seg.name}" — using fallback plan instead.`)
-        }
+      if (!res.ok || !Array.isArray(payload?.segments)) {
+        throw new Error(payload?.error ?? `generate-tasks error (${res.status})`)
       }
 
-      setPlan(plan)
-      setStep('preview')
+      // Merge tasks back into plan segments
+      setPlan(prev => {
+        if (!prev) return prev
+        const updated = { ...prev, segments: prev.segments.map((seg, i) => ({
+          ...seg,
+          tasks: payload.segments[i]?.tasks ?? seg.tasks,
+        }))}
+        return updated
+      })
+      setTasksReady(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.error('[analyze-goal] Failed:', msg)
-      setAnalyzeError(msg)
-      setPlan({ ...generateFallbackPlan(goalText, durationWeeks), suggestedMetrics: [] })
-      setStep('preview')
+      console.error('[generate-tasks] Failed:', msg)
+      setTasksError(msg)
+      generateFallbackTasks()
     }
+  }
+
+  function generateFallbackTasks() {
+    const fallbackPhase = (scale: number): TaskObj[] => [
+      { main: `After morning coffee: ${scale * 15}-min practice — note one win`, floor: 'If 5 mins: one focused rep', time_of_day: 'morning' },
+      { main: 'After lunch: review progress — pick one improvement', floor: 'If 2 mins: read one tip', time_of_day: 'midday' },
+      { main: 'Before bed: plan tomorrow — write the one key task', floor: 'If 2 mins: set your alarm cue', time_of_day: 'night' },
+    ]
+    setPlan(prev => {
+      if (!prev) return prev
+      return { ...prev, segments: prev.segments.map(seg => ({
+        ...seg,
+        tasks: { early: fallbackPhase(1), mid: fallbackPhase(2), late: fallbackPhase(3) },
+      }))}
+    })
+    setTasksReady(true)
   }
 
   function generateFallbackPlan(goal: string, weeks: number): GeneratedPlan {
@@ -150,54 +196,10 @@ export function OnboardingPage() {
       overview: `A structured ${weeks}-week plan to help you achieve your goal: "${goal}"`,
       suggestedMetrics: [],
       segments: [
-        {
-          name: 'Core Practice',
-          description: 'Build the central daily habit for your goal',
-          icon: '🎯',
-          color: 'lavender',
-          weeklyFocus: ['Foundation', 'Momentum', 'Mastery'],
-          tasks: {
-            early: ['Morning: 15-min practice', 'Evening: Log progress', 'Night: Plan tomorrow'],
-            mid:   ['Morning: 30-min practice', 'Afternoon: Review & adjust', 'Evening: Reflect on growth'],
-            late:  ['Morning: 45-min practice', 'Afternoon: Teach or share', 'Evening: Weekly milestone check'],
-          },
-        },
-        {
-          name: 'Mindset',
-          description: 'Cultivate focus, resilience and positive self-talk',
-          icon: '🧘',
-          color: 'peach',
-          weeklyFocus: ['Awareness', 'Reframing', 'Ownership'],
-          tasks: {
-            early: ['Morning: 5-min breathing', 'Evening: Gratitude note', 'Night: Affirmations'],
-            mid:   ['Morning: 10-min meditation', 'Afternoon: Stress reset', 'Evening: Journal entry'],
-            late:  ['Morning: 15-min visualisation', 'Afternoon: Mentoring call', 'Evening: Month review'],
-          },
-        },
-        {
-          name: 'Learning',
-          description: 'Deepen knowledge and skills tied to the goal',
-          icon: '📚',
-          color: 'sky',
-          weeklyFocus: ['Concepts', 'Application', 'Mastery'],
-          tasks: {
-            early: ['Morning: Read 10 pages', 'Afternoon: Watch 1 lesson', 'Evening: Write key insight'],
-            mid:   ['Morning: Read 20 pages', 'Afternoon: Practice skill', 'Evening: Teach back concept'],
-            late:  ['Morning: Read 30 pages', 'Afternoon: Apply to project', 'Evening: Peer review work'],
-          },
-        },
-        {
-          name: 'Recovery',
-          description: 'Protect energy, sleep and sustainability',
-          icon: '😴',
-          color: 'mint',
-          weeklyFocus: ['Sleep hygiene', 'Active rest', 'Stress mastery'],
-          tasks: {
-            early: ['Morning: Hydrate & stretch', 'Evening: Screen-free hour', 'Night: 7h sleep target'],
-            mid:   ['Morning: Cold splash & walk', 'Evening: Wind-down routine', 'Night: 8h sleep target'],
-            late:  ['Morning: Full body stretch', 'Evening: Weekly rest plan', 'Night: No phone after 9pm'],
-          },
-        },
+        { name: 'Core Practice',  description: 'Build the central daily habit for your goal',    icon: '🎯', color: 'lavender', weeklyFocus: ['Foundation', 'Momentum', 'Mastery'] },
+        { name: 'Mindset',        description: 'Cultivate focus, resilience and self-belief',    icon: '🧘', color: 'peach',    weeklyFocus: ['Awareness', 'Reframing', 'Ownership'] },
+        { name: 'Learning',       description: 'Deepen knowledge and skills tied to the goal',  icon: '📚', color: 'sky',      weeklyFocus: ['Concepts', 'Application', 'Mastery'] },
+        { name: 'Recovery',       description: 'Protect energy, sleep and sustainability',       icon: '😴', color: 'mint',     weeklyFocus: ['Sleep hygiene', 'Active rest', 'Stress mastery'] },
       ],
     }
   }
@@ -347,7 +349,7 @@ export function OnboardingPage() {
   function generateTasksForSegment(
     challengeId: string,
     segmentId: string,
-    tasks: { early: string[]; mid: string[]; late: string[] },
+    tasks: { early: TaskObj[]; mid: TaskObj[]; late: TaskObj[] },
     totalDays: number
   ) {
     const result = []
@@ -355,11 +357,13 @@ export function OnboardingPage() {
     const phase2End = Math.round(totalDays * 2 / 3)
     for (let day = 1; day <= totalDays; day++) {
       const pool = day <= phase1End ? tasks.early : day <= phase2End ? tasks.mid : tasks.late
-      const title = pool[day % pool.length]
+      const taskObj = pool[day % pool.length]
       result.push({
         challenge_id: challengeId,
         segment_id: segmentId,
-        title,
+        title: taskObj.main,
+        floor_task: taskObj.floor,
+        time_of_day: taskObj.time_of_day,
         day_number: day,
         week_number: Math.ceil(day / 7),
         frequency: 'daily',
@@ -423,7 +427,14 @@ export function OnboardingPage() {
                   <p className="text-xs text-red-500 dark:text-red-500 font-mono break-all">{analyzeError}</p>
                 </div>
               )}
-              <PlanPreviewStep plan={plan} totalDays={durationWeeks * 7} onStart={() => setStep('outcomes')} saving={false} />
+              <PlanPreviewStep
+                plan={plan}
+                totalDays={durationWeeks * 7}
+                onStart={() => setStep('outcomes')}
+                saving={false}
+                tasksReady={tasksReady}
+                tasksError={tasksError}
+              />
             </motion.div>
           )}
           {step === 'outcomes' && plan && (

@@ -124,12 +124,18 @@ create table if not exists public.tasks (
   challenge_id  uuid references public.challenges(id) on delete cascade not null,
   segment_id    uuid references public.segments(id) on delete cascade not null,
   title         text not null,
+  floor_task    text,
+  time_of_day   text check (time_of_day in ('morning', 'midday', 'afternoon', 'evening', 'night')),
   description   text,
   day_number    integer not null check (day_number >= 1),
   week_number   integer not null check (week_number >= 1),
   frequency     text not null default 'daily' check (frequency in ('daily', 'weekly', 'once')),
   created_at    timestamptz default now() not null
 );
+
+-- Migration for existing databases (run if table already exists):
+-- alter table public.tasks add column if not exists floor_task text;
+-- alter table public.tasks add column if not exists time_of_day text check (time_of_day in ('morning', 'midday', 'afternoon', 'evening', 'night'));
 
 alter table public.tasks enable row level security;
 

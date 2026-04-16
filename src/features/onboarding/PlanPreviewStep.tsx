@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { CheckCircle, Rocket } from 'lucide-react'
+import { CheckCircle, Rocket, Loader2 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import type { GeneratedPlan } from './OnboardingPage'
@@ -17,9 +17,25 @@ interface PlanPreviewStepProps {
   totalDays: number
   onStart: () => void
   saving: boolean
+  tasksReady: boolean
+  tasksError: string | null
 }
 
-export function PlanPreviewStep({ plan, totalDays, onStart, saving }: PlanPreviewStepProps) {
+function TaskChipSkeleton() {
+  return (
+    <div className="flex flex-wrap gap-1 mt-2">
+      {[52, 72, 60].map((w, i) => (
+        <div
+          key={i}
+          className="h-5 rounded-full bg-gray-200 dark:bg-dark-100 animate-pulse"
+          style={{ width: w }}
+        />
+      ))}
+    </div>
+  )
+}
+
+export function PlanPreviewStep({ plan, totalDays, onStart, saving, tasksReady, tasksError }: PlanPreviewStepProps) {
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-6">
@@ -49,6 +65,13 @@ export function PlanPreviewStep({ plan, totalDays, onStart, saving }: PlanPrevie
             <div className="text-xs text-gray-500 dark:text-gray-400">Tasks Total</div>
           </div>
         </div>
+
+        {!tasksReady && (
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400 pb-1">
+            <Loader2 size={12} className="animate-spin" />
+            Personalising your daily tasks…
+          </div>
+        )}
       </Card>
 
       <div className="flex flex-col gap-3">
@@ -67,16 +90,21 @@ export function PlanPreviewStep({ plan, totalDays, onStart, saving }: PlanPrevie
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{seg.name}</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{seg.description}</p>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {(seg.tasks?.early ?? []).slice(0, 3).map((task, j) => (
-                      <span
-                        key={j}
-                        className="text-xs bg-gray-100 dark:bg-dark-100 text-gray-600 dark:text-gray-400 rounded-full px-2 py-0.5"
-                      >
-                        {task}
-                      </span>
-                    ))}
-                  </div>
+
+                  {tasksReady ? (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {(seg.tasks?.early ?? []).slice(0, 3).map((task, j) => (
+                        <span
+                          key={j}
+                          className="text-xs bg-gray-100 dark:bg-dark-100 text-gray-600 dark:text-gray-400 rounded-full px-2 py-0.5"
+                        >
+                          {task.main}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <TaskChipSkeleton />
+                  )}
                 </div>
               </div>
             </Card>
@@ -84,9 +112,30 @@ export function PlanPreviewStep({ plan, totalDays, onStart, saving }: PlanPrevie
         ))}
       </div>
 
-      <Button onClick={onStart} loading={saving} size="lg" className="w-full gap-2 mt-2">
-        <Rocket size={18} />
-        Continue to Measurements →
+      {tasksError && (
+        <p className="text-xs text-amber-600 dark:text-amber-400 text-center px-2">
+          Using default task templates — you can customise them later.
+        </p>
+      )}
+
+      <Button
+        onClick={onStart}
+        loading={saving}
+        disabled={!tasksReady || saving}
+        size="lg"
+        className="w-full gap-2 mt-2"
+      >
+        {!tasksReady ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            Building your tasks…
+          </>
+        ) : (
+          <>
+            <Rocket size={18} />
+            Continue to Measurements →
+          </>
+        )}
       </Button>
     </div>
   )
