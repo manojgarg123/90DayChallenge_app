@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase, supabaseAnonKey } from '@/lib/supabase'
+import { OnboardingProgress } from './OnboardingProgress'
 import { GoalStep } from './GoalStep'
 import { ContextIntakeA } from './ContextIntakeA'
 import { ContextIntakeB } from './ContextIntakeB'
@@ -376,6 +377,7 @@ export function OnboardingPage() {
       </div>
 
       <div className="w-full max-w-lg relative">
+        {step !== 'analyzing' && <OnboardingProgress step={step} />}
         <AnimatePresence mode="wait">
           {step === 'goal' && (
             <motion.div key="goal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>

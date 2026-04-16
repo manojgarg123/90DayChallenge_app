@@ -34,12 +34,7 @@ export function ContextIntakeA({ goalVerb, goalObject, onNext, onBack }: Props) 
         >
           <ChevronLeft size={16} />
         </button>
-        <div className="flex gap-1.5">
-          <span className="w-6 h-1.5 rounded-full bg-lavender-400" />
-          <span className="w-6 h-1.5 rounded-full bg-gray-200 dark:bg-dark-50" />
-          <span className="w-6 h-1.5 rounded-full bg-gray-200 dark:bg-dark-50" />
-        </div>
-        <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">1 of 3</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">Step 1 of 3</span>
       </div>
 
       <div className="text-center mb-6">
