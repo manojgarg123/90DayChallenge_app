@@ -55,15 +55,23 @@ create trigger on_auth_user_created
 -- CHALLENGES
 -- ================================================================
 create table if not exists public.challenges (
-  id                uuid primary key default uuid_generate_v4(),
-  user_id           uuid references auth.users(id) on delete cascade not null,
-  title             text not null,
-  goal_description  text not null,
-  start_date        date not null,
-  end_date          date not null,
-  status            text not null default 'active' check (status in ('active', 'completed', 'abandoned')),
-  created_at        timestamptz default now() not null
+  id                  uuid primary key default uuid_generate_v4(),
+  user_id             uuid references auth.users(id) on delete cascade not null,
+  title               text not null,
+  goal_description    text not null,
+  goal_verb           text,
+  goal_outcome        text,
+  identity_statement  text,
+  start_date          date not null,
+  end_date            date not null,
+  status              text not null default 'active' check (status in ('active', 'completed', 'abandoned')),
+  created_at          timestamptz default now() not null
 );
+
+-- Migration for existing databases (run if table already exists):
+-- alter table public.challenges add column if not exists goal_verb text;
+-- alter table public.challenges add column if not exists goal_outcome text;
+-- alter table public.challenges add column if not exists identity_statement text;
 
 alter table public.challenges enable row level security;
 

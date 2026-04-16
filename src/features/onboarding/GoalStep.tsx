@@ -1,28 +1,39 @@
 import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { Textarea } from '@/components/ui/Input'
+import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 
-const GOAL_EXAMPLES = [
-  "Lose 15 pounds and build muscle through consistent workouts and clean eating",
-  "Run my first 5K and develop a sustainable fitness routine",
-  "Reduce stress, improve sleep quality, and practice mindfulness daily",
-  "Build a morning routine, journal daily, and read 10 books",
-]
-
+const GOAL_VERBS = ['run', 'learn', 'quit', 'build', 'lose', 'save', 'practice', 'meditate', 'write']
 const DURATION_OPTIONS = [4, 6, 8, 10, 12, 16]
 
 interface GoalStepProps {
-  onAnalyze: (goal: string, durationWeeks: number) => void
+  onAnalyze: (goalVerb: string, goalOutcome: string, identityStatement: string, durationWeeks: number) => void
 }
 
 export function GoalStep({ onAnalyze }: GoalStepProps) {
-  const [goal, setGoal] = useState('')
+  const [selectedVerb, setSelectedVerb] = useState('')
+  const [customVerb, setCustomVerb] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
+  const [goalOutcome, setGoalOutcome] = useState('')
+  const [identityStatement, setIdentityStatement] = useState('')
   const [durationWeeks, setDurationWeeks] = useState(12)
 
-  function handleExample(example: string) {
-    setGoal(example)
+  const goalVerb = showCustom ? customVerb.trim() : selectedVerb
+
+  const canProceed =
+    goalVerb.length > 0 &&
+    goalOutcome.trim().length >= 10 &&
+    identityStatement.trim().length >= 5
+
+  function handleVerbSelect(verb: string) {
+    setSelectedVerb(verb)
+    setShowCustom(false)
+  }
+
+  function handleOtherSelect() {
+    setSelectedVerb('')
+    setShowCustom(true)
   }
 
   return (
@@ -31,10 +42,87 @@ export function GoalStep({ onAnalyze }: GoalStepProps) {
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-3xl bg-lavender-100 dark:bg-lavender-500/20 mb-4">
           <span className="text-2xl">🌟</span>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">What's your challenge goal?</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">What's your challenge?</h2>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-          Describe what you want to achieve. Our AI will craft a personalized plan.
+          Tell us what you want to achieve and who you're becoming.
         </p>
+      </div>
+
+      {/* Field 1: Goal Verb */}
+      <div className="mb-5">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+          I want to…
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          {GOAL_VERBS.map(verb => (
+            <button
+              key={verb}
+              onClick={() => handleVerbSelect(verb)}
+              className={`
+                px-3 py-1.5 rounded-xl text-sm font-semibold transition-all capitalize
+                ${!showCustom && selectedVerb === verb
+                  ? 'bg-lavender-400 text-white shadow-pastel'
+                  : 'bg-gray-100 dark:bg-dark-100 text-gray-600 dark:text-gray-400 hover:bg-lavender-100 dark:hover:bg-lavender-500/20'}
+              `}
+            >
+              {verb}
+            </button>
+          ))}
+          <button
+            onClick={handleOtherSelect}
+            className={`
+              px-3 py-1.5 rounded-xl text-sm font-semibold transition-all
+              ${showCustom
+                ? 'bg-lavender-400 text-white shadow-pastel'
+                : 'bg-gray-100 dark:bg-dark-100 text-gray-600 dark:text-gray-400 hover:bg-lavender-100 dark:hover:bg-lavender-500/20'}
+            `}
+          >
+            other…
+          </button>
+        </div>
+        {showCustom && (
+          <div className="mt-2">
+            <Input
+              placeholder="e.g. cook, cycle, speak…"
+              value={customVerb}
+              onChange={e => setCustomVerb(e.target.value)}
+              maxLength={30}
+              autoFocus
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Field 2: Goal Outcome */}
+      <div className="mb-5">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+          …so that I can…
+        </p>
+        <Input
+          placeholder="run a 5k / feel confident / have energy for my kids"
+          value={goalOutcome}
+          onChange={e => setGoalOutcome(e.target.value)}
+          maxLength={150}
+        />
+        {goalOutcome.length > 0 && goalOutcome.trim().length < 10 && (
+          <p className="text-xs text-gray-400 mt-1">A little more detail helps the AI personalise your plan</p>
+        )}
+      </div>
+
+      {/* Field 3: Identity Statement */}
+      <div className="mb-5">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+          Who do you want to become?
+        </p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+          This shapes how your tasks are framed throughout the challenge.
+        </p>
+        <Input
+          placeholder="a runner / a meditator / someone who prioritises health"
+          value={identityStatement}
+          onChange={e => setIdentityStatement(e.target.value)}
+          maxLength={100}
+        />
       </div>
 
       {/* Duration picker */}
@@ -63,39 +151,20 @@ export function GoalStep({ onAnalyze }: GoalStepProps) {
         </p>
       </div>
 
-      <Textarea
-        placeholder="e.g. I want to lose 20 pounds, build strength, improve my diet, and develop better sleep habits..."
-        value={goal}
-        onChange={e => setGoal(e.target.value)}
-        className="min-h-[140px]"
-        maxLength={500}
-      />
-      <p className="text-xs text-gray-400 dark:text-gray-600 text-right mt-1">
-        {goal.length}/500
-      </p>
-
-      <div className="mt-4">
-        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
-          Example goals
-        </p>
-        <div className="flex flex-col gap-2">
-          {GOAL_EXAMPLES.map((example, i) => (
-            <button
-              key={i}
-              onClick={() => handleExample(example)}
-              className="text-left text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-100/50 hover:bg-lavender-50 dark:hover:bg-lavender-500/10 rounded-xl p-2.5 transition-colors"
-            >
-              "{example}"
-            </button>
-          ))}
+      {/* Preview sentence */}
+      {goalVerb && goalOutcome.trim().length >= 10 && (
+        <div className="mb-5 p-3 rounded-2xl bg-lavender-50 dark:bg-lavender-500/10 border border-lavender-200 dark:border-lavender-500/30">
+          <p className="text-sm text-lavender-700 dark:text-lavender-300">
+            "I want to <strong>{goalVerb}</strong> so that I can {goalOutcome.trim()}"
+          </p>
         </div>
-      </div>
+      )}
 
       <Button
-        onClick={() => onAnalyze(goal, durationWeeks)}
-        disabled={goal.trim().length < 20}
+        onClick={() => onAnalyze(goalVerb, goalOutcome.trim(), identityStatement.trim(), durationWeeks)}
+        disabled={!canProceed}
         size="lg"
-        className="w-full mt-6 gap-2"
+        className="w-full gap-2"
       >
         <Sparkles size={18} />
         Analyze My Goal with AI

@@ -32,7 +32,9 @@ interface MetricEntry {
 export function OnboardingPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<'goal' | 'analyzing' | 'preview' | 'outcomes'>('goal')
-  const [goalText, setGoalText] = useState('')
+  const [goalVerb, setGoalVerb] = useState('')
+  const [goalOutcome, setGoalOutcome] = useState('')
+  const [identityStatement, setIdentityStatement] = useState('')
   const [durationWeeks, setDurationWeeks] = useState(12)
   const [plan, setPlan] = useState<GeneratedPlan | null>(null)
   const [saving, setSaving] = useState(false)
@@ -41,11 +43,15 @@ export function OnboardingPage() {
   const [pendingMetrics, setPendingMetrics] = useState<MetricEntry[] | null>(null)
   const [activeCount, setActiveCount] = useState(0)
 
-  async function analyzeGoal(goal: string, weeks: number) {
-    setGoalText(goal)
+  async function analyzeGoal(verb: string, outcome: string, identity: string, weeks: number) {
+    setGoalVerb(verb)
+    setGoalOutcome(outcome)
+    setIdentityStatement(identity)
     setDurationWeeks(weeks)
     setAnalyzeError(null)
     setStep('analyzing')
+
+    const goalText = `I want to ${verb} so that I can ${outcome}`
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -57,7 +63,13 @@ export function OnboardingPage() {
           'Content-Type': 'application/json',
           'apikey': supabaseAnonKey,
         },
-        body: JSON.stringify({ goal, durationWeeks: weeks }),
+        body: JSON.stringify({
+          goal: goalText,
+          goalVerb: verb,
+          goalOutcome: outcome,
+          identityStatement: identity,
+          durationWeeks: weeks,
+        }),
       })
 
       const payload = await res.json()
@@ -85,7 +97,7 @@ export function OnboardingPage() {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[analyze-goal] Failed:', msg)
       setAnalyzeError(msg)
-      setPlan({ ...generateFallbackPlan(goal, weeks), suggestedMetrics: [] })
+      setPlan({ ...generateFallbackPlan(goalText, weeks), suggestedMetrics: [] })
       setStep('preview')
     }
   }
@@ -209,7 +221,12 @@ export function OnboardingPage() {
         .insert({
           user_id: user.id,
           title: plan.challengeTitle,
-          goal_description: goalText,
+          goal_description: goalVerb
+            ? `I want to ${goalVerb} so that I can ${goalOutcome}`
+            : goalOutcome,
+          goal_verb: goalVerb || null,
+          goal_outcome: goalOutcome || null,
+          identity_statement: identityStatement || null,
           start_date: startDate,
           end_date: endDate,
           status: 'active',
@@ -320,7 +337,7 @@ export function OnboardingPage() {
           )}
           {step === 'analyzing' && (
             <motion.div key="analyzing" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-              <AnalyzingStep goal={goalText} />
+              <AnalyzingStep goal={goalVerb ? `I want to ${goalVerb} so that I can ${goalOutcome}` : goalOutcome} />
             </motion.div>
           )}
           {step === 'preview' && plan && (
