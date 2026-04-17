@@ -268,6 +268,30 @@ left join public.progress_logs pl on pl.task_id = t.id
 group by c.id, c.user_id, c.title, c.status, c.start_date, c.end_date;
 
 -- ================================================================
+-- WEEKLY CHECK-INS (difficulty rating + WOOP intentions)
+-- ================================================================
+create table if not exists public.weekly_checkins (
+  id            uuid primary key default uuid_generate_v4(),
+  challenge_id  uuid references public.challenges(id) on delete cascade not null,
+  user_id       uuid references auth.users(id) on delete cascade not null,
+  week_number   integer not null check (week_number >= 1),
+  difficulty    text check (difficulty in ('too_hard', 'just_right', 'too_easy')),
+  woop_outcome  text,
+  woop_obstacle text,
+  created_at    timestamptz default now() not null,
+  unique(challenge_id, week_number)
+);
+
+alter table public.weekly_checkins enable row level security;
+
+create policy "Users can manage own weekly checkins"
+  on public.weekly_checkins for all
+  using (auth.uid() = user_id);
+
+-- Migration for existing databases:
+-- (run the full CREATE TABLE block above in your Supabase SQL editor)
+
+-- ================================================================
 -- REALTIME
 -- ================================================================
 alter publication supabase_realtime add table public.progress_logs;

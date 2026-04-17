@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ChallengeSelector } from '@/components/ChallengeSelector'
+import { WeeklyCheckIn } from './WeeklyCheckIn'
 
 export function WeeklySummaryPage() {
   const { user } = useAuth()
@@ -285,6 +286,17 @@ export function WeeklySummaryPage() {
               })}
             </div>
           </Card>
+
+          {/* Weekly check-in — only for weeks up to and including current */}
+          {selectedWeek <= currentWeek && challenge && (
+            <WeeklyCheckIn
+              challengeId={challenge.id}
+              userId={user!.id}
+              weekNumber={selectedWeek}
+              nextWeekNumber={selectedWeek + 1}
+              challenge={challenge}
+            />
+          )}
 
           {/* Outcome measurements */}
           {metrics.length > 0 && (

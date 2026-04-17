@@ -26,6 +26,7 @@ export function DashboardPage() {
 
   const [allLogs, setAllLogs] = useState<ProgressLog[]>([])
   const [nudges, setNudges] = useState<Array<{ id: string; message: string; type: string }>>([])
+  const [woop, setWoop] = useState<{ outcome: string; obstacle: string } | null>(null)
 
   const dayNumber = challenge ? getDayNumber(challenge.start_date, challenge.end_date) : 1
   const weekNumber = Math.ceil(dayNumber / 7)
@@ -35,6 +36,7 @@ export function DashboardPage() {
     if (challenge) {
       fetchLogs()
       fetchNudges()
+      fetchWoop()
     }
   }, [challenge])
 
@@ -45,6 +47,19 @@ export function DashboardPage() {
       .eq('challenge_id', challenge!.id)
       .order('logged_date', { ascending: false })
     if (data) setAllLogs(data as any)
+  }
+
+  async function fetchWoop() {
+    if (!challenge || weekNumber <= 1) return
+    const { data } = await supabase
+      .from('weekly_checkins')
+      .select('woop_outcome, woop_obstacle')
+      .eq('challenge_id', challenge.id)
+      .eq('week_number', weekNumber - 1)
+      .maybeSingle()
+    if (data?.woop_outcome) {
+      setWoop({ outcome: data.woop_outcome, obstacle: data.woop_obstacle || '' })
+    }
   }
 
   async function fetchNudges() {
@@ -136,6 +151,21 @@ export function DashboardPage() {
             supabase.from('nudges').update({ read: true }).eq('id', nudges[0].id)
             setNudges(prev => prev.slice(1))
           }} />
+        )}
+
+        {/* WOOP weekly intention from last check-in */}
+        {woop && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="p-4 border border-lavender-200 dark:border-lavender-500/30 bg-lavender-50/50 dark:bg-lavender-500/10">
+              <p className="text-xs font-semibold text-lavender-700 dark:text-lavender-300 mb-2">This week's intention</p>
+              <p className="text-sm text-gray-800 dark:text-gray-200">🎯 {woop.outcome}</p>
+              {woop.obstacle && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  💡 If {woop.obstacle.toLowerCase()}, I'll use my floor task fallback.
+                </p>
+              )}
+            </Card>
+          </motion.div>
         )}
 
         {/* Challenge Overview Card */}
