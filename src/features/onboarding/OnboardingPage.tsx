@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { supabase, supabaseAnonKey } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { OnboardingProgress } from './OnboardingProgress'
 import { GoalStep } from './GoalStep'
 import { ContextIntakeA } from './ContextIntakeA'
@@ -94,26 +94,15 @@ export function OnboardingPage() {
     setStep('analyzing')
 
     const goalText = `I want to ${goalVerb} ${goalObject} so that I can ${goalOutcome}`
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    if (!supabaseUrl || !supabaseAnonKey) {
-      setAnalyzeError('Missing Supabase config')
-      setPlan({ ...generateFallbackPlan(goalText, durationWeeks), suggestedMetrics: [] })
-      setStep('preview')
-      generateFallbackTasks()
-      return
-    }
 
     // ── Step 1: Get plan structure (fast, ~1-2s) ──────────────────────────────
     let structurePlan: GeneratedPlan
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/analyze-goal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': supabaseAnonKey },
-        body: JSON.stringify({ goal: goalText, goalVerb, goalObject, goalOutcome, durationWeeks }),
+      const { data: payload, error: fnError } = await supabase.functions.invoke('analyze-goal', {
+        body: { goal: goalText, goalVerb, goalObject, goalOutcome, durationWeeks },
       })
-      const payload = await res.json()
-      if (!res.ok || !payload?.plan?.segments?.length) {
-        throw new Error(payload?.error ?? `Edge function error (${res.status})`)
+      if (fnError || !payload?.plan?.segments?.length) {
+        throw new Error(fnError?.message ?? 'analyze-goal returned invalid plan')
       }
       structurePlan = payload.plan
     } catch (err) {
@@ -136,12 +125,9 @@ export function OnboardingPage() {
     constr: string[],
     stages: string,
   ) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/generate-tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': supabaseAnonKey },
-        body: JSON.stringify({
+      const { data: payload, error: fnError } = await supabase.functions.invoke('generate-tasks', {
+        body: {
           segments: segments.map(s => ({ name: s.name, description: s.description })),
           goalVerb, goalObject, goalOutcome, identityStatement,
           currentFrequency, availableTime,
@@ -149,42 +135,55 @@ export function OnboardingPage() {
           constraints: constr,
           stagesOfChange: stages,
           durationWeeks,
-        }),
+        },
       })
-      const payload = await res.json()
-      if (!res.ok || !Array.isArray(payload?.segments)) {
-        throw new Error(payload?.error ?? `generate-tasks error (${res.status})`)
+      if (fnError || !Array.isArray(payload?.segments)) {
+        throw new Error(fnError?.message ?? 'generate-tasks returned invalid response')
       }
 
       // Merge tasks back into plan segments
       setPlan(prev => {
         if (!prev) return prev
-        const updated = { ...prev, segments: prev.segments.map((seg, i) => ({
+        return { ...prev, segments: prev.segments.map((seg, i) => ({
           ...seg,
           tasks: payload.segments[i]?.tasks ?? seg.tasks,
         }))}
-        return updated
       })
       setTasksReady(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[generate-tasks] Failed:', msg)
       setTasksError(msg)
-      generateFallbackTasks()
+      generateFallbackTasks(segments)
     }
   }
 
-  function generateFallbackTasks() {
-    const fallbackPhase = (scale: number): TaskObj[] => [
-      { main: `After morning coffee: ${scale * 15}-min practice — note one win`, floor: 'If 5 mins: one focused rep', time_of_day: 'morning' },
-      { main: 'After lunch: review progress — pick one improvement', floor: 'If 2 mins: read one tip', time_of_day: 'midday' },
-      { main: 'Before bed: plan tomorrow — write the one key task', floor: 'If 2 mins: set your alarm cue', time_of_day: 'night' },
-    ]
+  function generateFallbackTasks(segments: GeneratedPlan['segments']) {
+    const makeTasks = (seg: { name: string }, mins: number): { early: TaskObj[]; mid: TaskObj[]; late: TaskObj[] } => {
+      const s = seg.name.toLowerCase()
+      return {
+        early: [
+          { main: `After morning coffee: ${mins}-min ${s} — note one win`, floor: `If 2 mins: review your ${s} goal`, time_of_day: 'morning' },
+          { main: `After lunch: quick ${s} check-in — adjust one thing`, floor: 'If 2 mins: read one tip', time_of_day: 'midday' },
+          { main: `Before bed: plan tomorrow's ${s} — write it down`, floor: 'If 2 mins: set your alarm cue', time_of_day: 'night' },
+        ],
+        mid: [
+          { main: `After morning coffee: ${mins * 2}-min ${s} — track progress`, floor: `If 5 mins: one focused ${s} action`, time_of_day: 'morning' },
+          { main: `After lunch: ${s} review — pick one improvement`, floor: 'If 2 mins: read one tip', time_of_day: 'midday' },
+          { main: `Before bed: ${s} reflection — what worked today?`, floor: 'If 2 mins: write one insight', time_of_day: 'night' },
+        ],
+        late: [
+          { main: `After morning coffee: ${mins * 3}-min ${s} — push your edge`, floor: `If 10 mins: core ${s} practice`, time_of_day: 'morning' },
+          { main: `After lunch: ${s} identity check — am I showing up?`, floor: 'If 2 mins: one affirmation', time_of_day: 'midday' },
+          { main: `Before bed: ${s} wins — celebrate one thing`, floor: 'If 2 mins: write one win', time_of_day: 'night' },
+        ],
+      }
+    }
     setPlan(prev => {
       if (!prev) return prev
-      return { ...prev, segments: prev.segments.map(seg => ({
+      return { ...prev, segments: prev.segments.map((seg, i) => ({
         ...seg,
-        tasks: { early: fallbackPhase(1), mid: fallbackPhase(2), late: fallbackPhase(3) },
+        tasks: makeTasks(segments[i] ?? seg, 10),
       }))}
     })
     setTasksReady(true)
