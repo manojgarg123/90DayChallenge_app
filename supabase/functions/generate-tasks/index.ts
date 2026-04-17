@@ -33,15 +33,27 @@ function getDurationGuide(availableTime: string): string {
   return map[availableTime] ?? 'Main tasks: 15–30 mins. Floor versions: 5–10 mins.'
 }
 
-// Stage-of-change adjustment instructions for early phase
+// Stage-of-change adjustment instructions — per phase, not just early
 function getStageInstruction(stage: string): string {
   const map: Record<string, string> = {
-    never_tried:   'Early phase only: focus on environment setup and friction removal — tasks like preparing space, scheduling time, buying one needed item. No performance pressure in week 1.',
-    tried_stopped: 'Early phase: acknowledge prior attempts. Include obstacle-planning language ("If you feel resistance: [plan B]"). Anchor tasks to prevent the most likely failure point.',
-    inconsistent:  'Early phase: prioritise consistency cues over intensity. Make it harder NOT to do the task than to do it. Focus on showing up, not performance.',
-    restarting:    'Early phase: acknowledge prior experience. Start at 60–70% of previous best, not from zero. Rebuild confidence before ramping intensity.',
+    never_tried: `
+Early: friction-removal ONLY — "Buy trainers and place by door", "Block time in calendar", "Clear a space". Zero performance targets.
+Mid: first real action tasks; keep duration minimal; celebrate showing up over output.
+Late: identity language — tasks now say who they are becoming, not just what they do.`,
+    tried_stopped: `
+Early: acknowledge prior attempts; embed obstacle-planning — "If resistance: [1-min fallback]"; anchor at the exact point past attempts failed.
+Mid: consistency over heroics; same anchor, same time every day; "streak matters more than output".
+Late: reframe identity — "Unlike before, you now [identity statement]".`,
+    inconsistent: `
+Early: make the cue unmissable; stack onto most reliable existing habit; reduce to 2-minute minimum.
+Mid: add accountability signal — "— tell one person" or "— log it now"; eliminate all decision points.
+Late: identity-first language — open with "As [identity]:".`,
+    restarting: `
+Early: start at 60–70% of prior best; rebuild confidence first; no ego-driven targets.
+Mid: gradual ramp; reference prior experience positively — "You've done this before".
+Late: reclaim former identity; tasks may reference returning to peak.`,
   }
-  return map[stage] ?? 'Early phase: start small and build consistency before adding intensity.'
+  return map[stage]?.trim() ?? 'Early: start small. Mid: build consistency. Late: lock in identity.'
 }
 
 // Format constraints list for display in prompt
@@ -133,6 +145,16 @@ TIME OF DAY assignment rules:
 - Respect user constraints (provided below)
 - Within each segment, spread tasks across DIFFERENT times of day — do not put all 3 in the same slot
 
+HABIT STACKING — build a compounding routine across phases:
+- mid phase: at least 1 task per segment MUST anchor onto a habit established in the early phase
+  Pattern: "After [early habit] + [added habit]: [action] — [reward]"
+  Example: early was "After coffee: 5-min stretch", so mid → "After coffee + stretch: 10 push-ups — mark it done"
+- late phase: at least 1 task per segment anchors onto BOTH early + mid habits as a single phrase
+  Pattern: "After [routine shorthand]: [peak action] — [identity reward]"
+  Example: "After morning routine: 20-min run — this is what runners do"
+- Use "routine", "warm-up", or "practice" as shorthand to stay within the 65-char limit
+- The other 2 tasks in each phase may use independent anchors
+
 OUTPUT — return ONLY valid JSON, no markdown, no explanation:
 {
   "segments": [
@@ -170,7 +192,8 @@ CURRENT FREQUENCY: ${formatFrequency(currentFrequency)}
 AVAILABLE TIME PER DAY: ${availableTime.replace('_', '+')}
 EXPERIENCE LEVEL: ${formatExperience(experienceLevel)}
 CONSTRAINTS: ${formatConstraints(constraints)}
-PREVIOUS ATTEMPTS: ${getStageInstruction(stagesOfChange)}
+STAGE-OF-CHANGE PROFILE (apply per phase):
+${getStageInstruction(stagesOfChange)}
 
 TASK DURATION GUIDE: ${getDurationGuide(availableTime)}
 
