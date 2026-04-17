@@ -102,8 +102,12 @@ create table if not exists public.segments (
   icon          text not null default '🎯',
   color         text not null default 'lavender',
   order_index   integer not null default 0,
+  preferred_time text check (preferred_time in ('morning', 'midday', 'afternoon', 'evening', 'night')),
   created_at    timestamptz default now() not null
 );
+
+-- Migration for existing databases:
+-- alter table public.segments add column if not exists preferred_time text check (preferred_time in ('morning', 'midday', 'afternoon', 'evening', 'night'));
 
 alter table public.segments enable row level security;
 

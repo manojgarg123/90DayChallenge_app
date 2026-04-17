@@ -39,6 +39,19 @@ interface MetricEntry {
   baselineValue: string
 }
 
+const TIME_SLOTS = ['morning', 'midday', 'afternoon', 'evening', 'night'] as const
+type TimeSlot = typeof TIME_SLOTS[number]
+
+const SEGMENT_TIME_RULES: Array<{ keywords: string[]; times: TimeSlot[] }> = [
+  { keywords: ['run', 'walk', 'workout', 'exercise', 'movement', 'gym', 'strength', 'cardio', 'fitness', 'training', 'sport'], times: ['morning', 'evening'] },
+  { keywords: ['meal', 'nutrition', 'protein', 'food', 'diet', 'eating', 'calorie', 'macro', 'fiber', 'carb', 'veggie', 'cook'], times: ['midday', 'evening'] },
+  { keywords: ['sleep', 'rest', 'recovery', 'nap', 'fatigue', 'insomnia', 'bedtime', 'wind'], times: ['night', 'evening'] },
+  { keywords: ['stress', 'anxiety', 'mindset', 'mood', 'journal', 'reflect', 'mental', 'emotion', 'gratitude', 'meditat', 'breath', 'mindful', 'calm'], times: ['evening', 'night'] },
+  { keywords: ['craving', 'snack', 'sugar', 'appetite', 'hunger', 'sweet', 'binge', 'urge'], times: ['afternoon', 'evening'] },
+  { keywords: ['water', 'hydrat', 'coffee', 'morning routine', 'wake'], times: ['morning'] },
+  { keywords: ['learn', 'study', 'read', 'skill', 'practice', 'technique', 'theory'], times: ['morning', 'afternoon'] },
+]
+
 export function OnboardingPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<'goal' | 'contextA' | 'contextB' | 'contextC' | 'analyzing' | 'preview' | 'outcomes'>('goal')
@@ -286,8 +299,11 @@ export function OnboardingPage() {
       if (challengeError) throw challengeError
 
       // Create segments and tasks
+      const segmentTimes = assignSegmentTimes(plan.segments)
+
       for (let i = 0; i < plan.segments.length; i++) {
         const seg = plan.segments[i]
+        const preferredTime = segmentTimes[i]
 
         const { data: segment, error: segError } = await supabase
           .from('segments')
@@ -298,13 +314,14 @@ export function OnboardingPage() {
             icon: seg.icon,
             color: seg.color,
             order_index: i,
+            preferred_time: preferredTime,
           })
           .select()
           .single()
 
         if (segError) throw segError
 
-        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.tasks ?? { early: [], mid: [], late: [] }, totalDays)
+        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.tasks ?? { early: [], mid: [], late: [] }, totalDays, preferredTime)
         const { error: tasksError } = await supabase.from('tasks').insert(tasks)
         if (tasksError) throw tasksError
       }
@@ -345,18 +362,62 @@ export function OnboardingPage() {
     }
   }
 
+  function assignSegmentTimes(segs: GeneratedPlan['segments']): string[] {
+    // Step 1: build ordered preference list per segment
+    const preferences = segs.map(seg => {
+      const text = `${seg.name} ${seg.description}`.toLowerCase()
+
+      // Keyword-based preferences
+      const keywordTimes: string[] = []
+      for (const rule of SEGMENT_TIME_RULES) {
+        if (rule.keywords.some(k => text.includes(k))) {
+          keywordTimes.push(...rule.times)
+          break
+        }
+      }
+
+      // AI task-data preferences (most common time_of_day in early pool)
+      const taskTimes: string[] = []
+      if (seg.tasks?.early?.length) {
+        const counts: Record<string, number> = {}
+        for (const t of seg.tasks.early) counts[t.time_of_day] = (counts[t.time_of_day] ?? 0) + 1
+        taskTimes.push(...Object.entries(counts).sort(([,a],[,b]) => b-a).map(([t]) => t))
+      }
+
+      // Merge: keyword first, then AI data, then all slots as fallback
+      return [...new Set([...keywordTimes, ...taskTimes, ...TIME_SLOTS])]
+    })
+
+    // Step 2: greedy unique assignment
+    const assigned: string[] = new Array(segs.length).fill('morning')
+    const taken = new Set<string>()
+    for (let i = 0; i < segs.length; i++) {
+      for (const time of preferences[i]) {
+        if (!taken.has(time)) {
+          assigned[i] = time
+          taken.add(time)
+          break
+        }
+      }
+    }
+    return assigned
+  }
+
   function generateTasksForSegment(
     challengeId: string,
     segmentId: string,
     tasks: { early: TaskObj[]; mid: TaskObj[]; late: TaskObj[] },
-    totalDays: number
+    totalDays: number,
+    preferredTime: string
   ) {
     const result = []
     const phase1End = Math.round(totalDays / 3)
     const phase2End = Math.round(totalDays * 2 / 3)
     for (let day = 1; day <= totalDays; day++) {
       const pool = day <= phase1End ? tasks.early : day <= phase2End ? tasks.mid : tasks.late
-      const taskObj = pool[day % pool.length]
+      // Pick the task whose time_of_day matches the segment's preferred time;
+      // fall back to pool[0] if the AI didn't produce a task at that time.
+      const taskObj = pool.find(t => t.time_of_day === preferredTime) ?? pool[0]
       result.push({
         challenge_id: challengeId,
         segment_id: segmentId,

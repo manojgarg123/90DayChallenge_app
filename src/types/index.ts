@@ -27,6 +27,7 @@ export interface Segment {
   icon: string
   color: string
   order_index: number
+  preferred_time: 'morning' | 'midday' | 'afternoon' | 'evening' | 'night' | null
   created_at: string
 }
 
