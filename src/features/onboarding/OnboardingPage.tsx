@@ -305,7 +305,7 @@ export function OnboardingPage() {
 
         if (segError) throw segError
 
-        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.tasks, totalDays)
+        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.tasks ?? { early: [], mid: [], late: [] }, totalDays)
         const { error: tasksError } = await supabase.from('tasks').insert(tasks)
         if (tasksError) throw tasksError
       }
