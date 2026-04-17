@@ -318,7 +318,7 @@ export function OnboardingPage() {
 
         if (segError) throw segError
 
-        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.tasks ?? { early: [], mid: [], late: [] }, totalDays, preferredTime)
+        const tasks = generateTasksForSegment(challenge.id, segment.id, seg.tasks ?? { early: [], mid: [], late: [] }, totalDays)
         const { error: tasksError } = await supabase.from('tasks').insert(tasks)
         if (tasksError) throw tasksError
       }
@@ -405,16 +405,16 @@ export function OnboardingPage() {
     segmentId: string,
     tasks: { early: TaskObj[]; mid: TaskObj[]; late: TaskObj[] },
     totalDays: number,
-    preferredTime: string
   ) {
     const result = []
     const phase1End = Math.round(totalDays / 3)
     const phase2End = Math.round(totalDays * 2 / 3)
     for (let day = 1; day <= totalDays; day++) {
       const pool = day <= phase1End ? tasks.early : day <= phase2End ? tasks.mid : tasks.late
-      // Pick the task whose time_of_day matches the segment's preferred time;
-      // fall back to pool[0] if the AI didn't produce a task at that time.
-      const taskObj = pool.find(t => t.time_of_day === preferredTime) ?? pool[0]
+      // Rotate through pool tasks by week so each week is consistent (habit-forming)
+      // but adjacent weeks vary (avoids 90 identical rows in the plan view).
+      const weekIndex = (Math.ceil(day / 7) - 1) % Math.max(pool.length, 1)
+      const taskObj = pool[weekIndex] ?? pool[0]
       result.push({
         challenge_id: challengeId,
         segment_id: segmentId,
