@@ -221,8 +221,8 @@ OUTPUT — return ONLY valid JSON, no markdown, no explanation, no text outside 
       "name": "exact segment name from input — do not change",
       "tasks": {
         "early": [
-          { "main": "After [anchor]: [specific action] — [reward]", "floor": "If [condition]: [minimal action]", "time_of_day": "morning" },
-          { "main": "...", "floor": "...", "time_of_day": "evening" }
+          { "main": "After [anchor]: [specific action] — [reward]", "floor": "If [condition]: [minimal action]", "time_of_day": "morning", "type": "once" },
+          { "main": "...", "floor": "...", "time_of_day": "evening", "type": "daily" }
         ],
         "mid":  [ 2 task objects ],
         "late": [ 2 task objects — both must contain identity language ]
@@ -236,7 +236,8 @@ HARD LIMITS:
 - main: ≤120 characters — be specific and actionable, use domain knowledge, never write generic phrases like "do some practice" or "work on your goal"
 - floor: ≤80 characters, must start with "If "
 - time_of_day: exactly one of: morning, midday, afternoon, evening, night
-- The 2 tasks in each phase must have DIFFERENT time_of_day values`
+- The 2 tasks in each phase must have DIFFERENT time_of_day values
+- type: "once" for one-time actions the user does only at the start of a phase (buy, download, install, clear space, place equipment, book, configure, block calendar, set up). "daily" for repeating habits (walk, run, practice, meditate, journal, eat, stretch, review, log). Default to "daily" if unsure. Early-phase setup tasks are nearly always "once". Mid and late tasks are nearly always "daily".`
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -362,6 +363,7 @@ Apply your domain expertise fully — write tasks a real expert in this field wo
             main:        typeof t.main  === 'string' ? t.main.slice(0, 120)  : String(t.main  ?? ''),
             floor:       typeof t.floor === 'string' ? t.floor.slice(0, 80)  : String(t.floor ?? ''),
             time_of_day: VALID_TIMES.includes(t.time_of_day) ? t.time_of_day : 'morning',
+            type:        t.type === 'once' ? 'once' : 'daily',
           }))
         }
         return {

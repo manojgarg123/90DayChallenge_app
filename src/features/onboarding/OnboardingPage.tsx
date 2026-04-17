@@ -15,6 +15,7 @@ export interface TaskObj {
   main: string
   floor: string
   time_of_day: 'morning' | 'midday' | 'afternoon' | 'evening' | 'night'
+  type?: 'daily' | 'once'
 }
 
 export interface GeneratedPlan {
@@ -406,26 +407,55 @@ export function OnboardingPage() {
     tasks: { early: TaskObj[]; mid: TaskObj[]; late: TaskObj[] },
     totalDays: number,
   ) {
-    const result = []
+    const result: object[] = []
     const phase1End = Math.round(totalDays / 3)
     const phase2End = Math.round(totalDays * 2 / 3)
-    for (let day = 1; day <= totalDays; day++) {
-      const pool = day <= phase1End ? tasks.early : day <= phase2End ? tasks.mid : tasks.late
-      // Rotate through pool tasks daily so adjacent days differ.
-      // With 2 tasks per pool: odd days → pool[0], even days → pool[1].
-      const taskIndex = (day - 1) % Math.max(pool.length, 1)
-      const taskObj = pool[taskIndex] ?? pool[0]
-      result.push({
-        challenge_id: challengeId,
-        segment_id: segmentId,
-        title: taskObj.main,
-        floor_task: taskObj.floor,
-        time_of_day: taskObj.time_of_day,
-        day_number: day,
-        week_number: Math.ceil(day / 7),
-        frequency: 'daily',
-      })
+
+    const phases = [
+      { pool: tasks.early, startDay: 1,              endDay: phase1End  },
+      { pool: tasks.mid,   startDay: phase1End + 1,   endDay: phase2End  },
+      { pool: tasks.late,  startDay: phase2End + 1,   endDay: totalDays  },
+    ]
+
+    for (const { pool, startDay, endDay } of phases) {
+      const onceTasks  = pool.filter(t => t.type === 'once')
+      const dailyTasks = pool.filter(t => t.type !== 'once')
+      // If AI returned no daily tasks (all setup), fall back to full pool so
+      // there is always something in the plan after the setup day.
+      const rotationPool = dailyTasks.length > 0 ? dailyTasks : pool
+
+      // One-time setup tasks: appear only on the first day of their phase.
+      for (const taskObj of onceTasks) {
+        result.push({
+          challenge_id: challengeId,
+          segment_id:   segmentId,
+          title:        taskObj.main,
+          floor_task:   taskObj.floor,
+          time_of_day:  taskObj.time_of_day,
+          day_number:   startDay,
+          week_number:  Math.ceil(startDay / 7),
+          frequency:    'once',
+        })
+      }
+
+      // Daily habit tasks: one row per day, rotating through the daily pool
+      // so adjacent days show a different variant of the habit.
+      for (let day = startDay; day <= endDay; day++) {
+        const taskIndex = (day - startDay) % rotationPool.length
+        const taskObj   = rotationPool[taskIndex] ?? rotationPool[0]
+        result.push({
+          challenge_id: challengeId,
+          segment_id:   segmentId,
+          title:        taskObj.main,
+          floor_task:   taskObj.floor,
+          time_of_day:  taskObj.time_of_day,
+          day_number:   day,
+          week_number:  Math.ceil(day / 7),
+          frequency:    'daily',
+        })
+      }
     }
+
     return result
   }
 
