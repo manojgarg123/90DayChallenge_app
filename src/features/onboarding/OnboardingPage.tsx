@@ -411,10 +411,10 @@ export function OnboardingPage() {
     const phase2End = Math.round(totalDays * 2 / 3)
     for (let day = 1; day <= totalDays; day++) {
       const pool = day <= phase1End ? tasks.early : day <= phase2End ? tasks.mid : tasks.late
-      // Rotate through pool tasks by week so each week is consistent (habit-forming)
-      // but adjacent weeks vary (avoids 90 identical rows in the plan view).
-      const weekIndex = (Math.ceil(day / 7) - 1) % Math.max(pool.length, 1)
-      const taskObj = pool[weekIndex] ?? pool[0]
+      // Rotate through pool tasks daily so adjacent days differ.
+      // With 2 tasks per pool: odd days → pool[0], even days → pool[1].
+      const taskIndex = (day - 1) % Math.max(pool.length, 1)
+      const taskObj = pool[taskIndex] ?? pool[0]
       result.push({
         challenge_id: challengeId,
         segment_id: segmentId,
