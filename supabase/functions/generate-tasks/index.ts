@@ -214,7 +214,7 @@ Remember: late-phase tasks must include the identity language — reference beco
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2500,
+        max_tokens: 4000,
         temperature: 0.7,
         system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }],
