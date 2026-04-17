@@ -176,19 +176,16 @@ export function OnboardingPage() {
       const s = seg.name.toLowerCase()
       return {
         early: [
-          { main: `After morning coffee: ${mins}-min ${s} — note one win`, floor: `If 2 mins: review your ${s} goal`, time_of_day: 'morning' },
-          { main: `After lunch: quick ${s} check-in — adjust one thing`, floor: 'If 2 mins: read one tip', time_of_day: 'midday' },
-          { main: `Before bed: plan tomorrow's ${s} — write it down`, floor: 'If 2 mins: set your alarm cue', time_of_day: 'night' },
+          { main: `After morning coffee: ${mins}-min ${s} session — note one specific thing that clicked`, floor: `If 2 mins: review your ${s} goal and visualise one rep`, time_of_day: 'morning' },
+          { main: `Before bed: set up tomorrow's ${s} session — remove one obstacle now`, floor: `If 2 mins: lay out what you need for tomorrow`, time_of_day: 'night' },
         ],
         mid: [
-          { main: `After morning coffee: ${mins * 2}-min ${s} — track progress`, floor: `If 5 mins: one focused ${s} action`, time_of_day: 'morning' },
-          { main: `After lunch: ${s} review — pick one improvement`, floor: 'If 2 mins: read one tip', time_of_day: 'midday' },
-          { main: `Before bed: ${s} reflection — what worked today?`, floor: 'If 2 mins: write one insight', time_of_day: 'night' },
+          { main: `After morning coffee + warm-up: ${mins * 2}-min ${s} — track one improvement`, floor: `If 5 mins: one focused ${s} action still builds momentum`, time_of_day: 'morning' },
+          { main: `Before bed: reflect on today's ${s} — what will you do differently tomorrow?`, floor: 'If 2 mins: write one insight in a sentence', time_of_day: 'night' },
         ],
         late: [
-          { main: `After morning coffee: ${mins * 3}-min ${s} — push your edge`, floor: `If 10 mins: core ${s} practice`, time_of_day: 'morning' },
-          { main: `After lunch: ${s} identity check — am I showing up?`, floor: 'If 2 mins: one affirmation', time_of_day: 'midday' },
-          { main: `Before bed: ${s} wins — celebrate one thing`, floor: 'If 2 mins: write one win', time_of_day: 'night' },
+          { main: `After morning routine: ${mins * 3}-min ${s} — this is who you are becoming`, floor: `If low energy: ${mins}-min version still builds the identity`, time_of_day: 'morning' },
+          { main: `Before bed: log today's ${s} wins — you showed up again`, floor: 'If 2 mins: write one win, however small', time_of_day: 'night' },
         ],
       }
     }
