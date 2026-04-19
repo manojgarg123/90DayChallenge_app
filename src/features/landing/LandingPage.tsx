@@ -43,11 +43,11 @@ export function LandingPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-lavender-400 dark:bg-lavender-500 shadow-pastel mb-5 animate-float">
             <span className="text-4xl">🎯</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
             Meta-Morph
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed">
-            Transform your life, one challenge at a time.
+            Create your better version, one challenge at a time.
           </p>
         </motion.div>
 
@@ -87,7 +87,7 @@ export function LandingPage() {
             className="w-full"
             onClick={() => navigate('/auth', { state: { view: 'register' } })}
           >
-            Start Your Challenge →
+            Metamorph Me
           </Button>
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
